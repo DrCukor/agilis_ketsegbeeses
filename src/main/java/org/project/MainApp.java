@@ -1,4 +1,4 @@
-package org.example;
+package org.project;
 
 import javafx.application.Application;
 import static javafx.application.Application.launch;
@@ -11,19 +11,11 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        FXMLLoader loader = new FXMLLoader(MainApp.class.getResource("/fxml/FXMLStudentsScene.fxml"));
+        FXMLLoader loader = new FXMLLoader(MainApp.class.getResource("/fxml/FXMLMainScene.fxml"));
         Scene scene = new Scene(loader.load());
-        stage.setTitle("Students Register");
+        stage.setTitle("KözösKassza");
         stage.setScene(scene);
         stage.show();
-        /*Parent root = FXMLLoader.load(getClass().getResource("/fxml/Scene.fxml"));
-        
-        Scene scene = new Scene(root);
-        scene.getStylesheets().add("/styles/Styles.css");
-        
-        stage.setTitle("JavaFX and Maven");
-        stage.setScene(scene);
-        stage.show();*/
     }
 
     /**

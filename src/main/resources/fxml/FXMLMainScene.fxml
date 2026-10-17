@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.SVGPath?>
+
+<BorderPane prefHeight="760.0" prefWidth="1120.0" styleClass="root-pane" stylesheets="@../styles/Styles.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.project.FXMLMainSceneController">
+
+    <!-- HEADER -->
+    <top>
+        <HBox alignment="CENTER_LEFT" prefHeight="64.0" spacing="12.0" styleClass="header-bar">
+            <padding>
+                <Insets left="32.0" right="32.0"/>
+            </padding>
+            <children>
+                <SVGPath content="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" styleClass="logo-icon"/>
+                <Label styleClass="app-title" text="KözösKassza"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <StackPane prefHeight="32.0" prefWidth="32.0" styleClass="avatar-badge-indigo">
+                    <children>
+                        <Label styleClass="avatar-text-indigo" text="Z"/>
+                    </children>
+                </StackPane>
+                <Label styleClass="user-name-label" text="Zoltán"/>
+            </children>
+        </HBox>
+    </top>
+
+    <!-- MAIN CONTENT -->
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="main-scroll-pane">
+            <content>
+                <GridPane hgap="28.0" vgap="28.0">
+                    <padding>
+                        <Insets bottom="32.0" left="32.0" right="32.0" top="32.0"/>
+                    </padding>
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES" percentWidth="64.0"/>
+                        <ColumnConstraints hgrow="SOMETIMES" percentWidth="36.0"/>
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints vgrow="ALWAYS"/>
+                    </rowConstraints>
+
+                    <children>
+                        <!-- BAL OLDALI OSZLOP (Új kiadás + Egyenlegek) -->
+                        <VBox GridPane.columnIndex="0" spacing="28.0">
+                            <children>
+
+                                <!-- KÁRTYA 1: Új kiadás hozzáadása -->
+                                <VBox styleClass="card">
+                                    <children>
+                                        <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="card-header">
+                                            <children>
+                                                <SVGPath content="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 6v8m-4-4h8" styleClass="icon-indigo"/>
+                                                <Label styleClass="card-title" text="Új kiadás hozzáadása"/>
+                                            </children>
+                                        </HBox>
+
+                                        <VBox spacing="18.0" styleClass="card-body">
+                                            <children>
+                                                <VBox spacing="6.0">
+                                                    <children>
+                                                        <Label styleClass="form-label" text="Megnevezés"/>
+                                                        <TextField fx:id="titleField" promptText="pl. Heti bevásárlás, Vonatjegy..." styleClass="modern-input"/>
+                                                    </children>
+                                                </VBox>
+
+                                                <HBox spacing="20.0">
+                                                    <children>
+                                                        <VBox HBox.hgrow="ALWAYS" spacing="6.0">
+                                                            <children>
+                                                                <Label styleClass="form-label" text="Összeg"/>
+                                                                <StackPane alignment="CENTER_RIGHT">
+                                                                    <children>
+                                                                        <TextField alignment="CENTER_RIGHT" fx:id="amountField" promptText="0" styleClass="modern-input-currency"/>
+                                                                        <Label styleClass="currency-suffix" text="Ft">
+                                                                            <StackPane.margin>
+                                                                                <Insets right="14.0"/>
+                                                                            </StackPane.margin>
+                                                                        </Label>
+                                                                    </children>
+                                                                </StackPane>
+                                                            </children>
+                                                        </VBox>
+
+                                                        <VBox HBox.hgrow="ALWAYS" spacing="6.0">
+                                                            <children>
+                                                                <Label styleClass="form-label" text="Ki fizette?"/>
+                                                                <ComboBox fx:id="payerComboBox" maxWidth="Infinity" styleClass="modern-combo"/>
+                                                            </children>
+                                                        </VBox>
+                                                    </children>
+                                                </HBox>
+
+                                                <!-- Elosztás opciók: Mindenki (4 fő) VAGY 2 lenyitható fül -->
+                                                <VBox spacing="14.0" styleClass="split-info-box">
+                                                    <children>
+                                                        <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                                            <children>
+                                                                <Label styleClass="split-info-text" text="Kik között oszlik meg?"/>
+                                                                <Region HBox.hgrow="ALWAYS"/>
+                                                                <ComboBox fx:id="splitModeComboBox" styleClass="modern-combo"/>
+                                                            </children>
+                                                        </HBox>
+
+                                                        <!-- A 2 egymást kizáró lenyitható fül konténere -->
+                                                        <HBox fx:id="customSplitBox" spacing="16.0" visible="false" managed="false">
+                                                            <children>
+                                                                <VBox HBox.hgrow="ALWAYS" spacing="6.0">
+                                                                    <children>
+                                                                        <Label styleClass="form-label" text="1. személy"/>
+                                                                        <ComboBox fx:id="splitPerson1ComboBox" maxWidth="Infinity" styleClass="modern-combo"/>
+                                                                    </children>
+                                                                </VBox>
+                                                                <VBox HBox.hgrow="ALWAYS" spacing="6.0">
+                                                                    <children>
+                                                                        <Label styleClass="form-label" text="2. személy"/>
+                                                                        <ComboBox fx:id="splitPerson2ComboBox" maxWidth="Infinity" styleClass="modern-combo"/>
+                                                                    </children>
+                                                                </VBox>
+                                                            </children>
+                                                        </HBox>
+                                                    </children>
+                                                </VBox>
+
+                                                <Button fx:id="saveButton" maxWidth="Infinity" mnemonicParsing="false" styleClass="btn-primary" text="Kiadás mentése ✓"/>
+                                            </children>
+                                        </VBox>
+                                    </children>
+                                </VBox>
+
+                                <!-- KÁRTYA 2: Egyenlegek (Üres konténer) -->
+                                <VBox styleClass="card">
+                                    <children>
+                                        <HBox alignment="CENTER_LEFT" styleClass="card-header">
+                                            <children>
+                                                <Label styleClass="card-title" text="Egyenlegek"/>
+                                                <Region HBox.hgrow="ALWAYS"/>
+                                                <Label styleClass="badge-optimized" text="Optimalizálva"/>
+                                            </children>
+                                        </HBox>
+
+                                        <HBox fx:id="balancesContainer" spacing="16.0" styleClass="card-body"/>
+                                    </children>
+                                </VBox>
+
+                            </children>
+                        </VBox>
+
+                        <!-- JOBB OLDALI OSZLOP: Legutóbbi kiadások (Üres konténer) -->
+                        <VBox GridPane.columnIndex="1" styleClass="card">
+                            <children>
+                                <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="card-header">
+                                    <children>
+                                        <Label styleClass="card-title" text="Legutóbbi kiadások"/>
+                                    </children>
+                                </HBox>
+
+                                <VBox VBox.vgrow="ALWAYS" fx:id="recentExpensesBox"/>
+
+                                <HBox alignment="CENTER" styleClass="card-footer">
+                                    <children>
+                                        <Button mnemonicParsing="false" styleClass="btn-link" text="Összes megtekintése →"/>
+                                    </children>
+                                </HBox>
+                            </children>
+                        </VBox>
+
+                    </children>
+                </GridPane>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

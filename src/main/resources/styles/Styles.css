@@ -1,3 +1,224 @@
-.button {
+.root-pane {
+    -fx-background-color: #f8fafc; /* bg-slate-50 */
+    -fx-font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+.main-scroll-pane, .main-scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* Header */
+.header-bar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e2e8f0;
+    -fx-border-width: 0 0 1 0;
+}
+
+.logo-icon {
+    -fx-stroke: #4f46e5;
+    -fx-stroke-width: 2;
+    -fx-fill: transparent;
+}
+
+.app-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0f172a;
+}
+
+.user-name-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #475569;
+}
+
+/* Kártyák (Sections) */
+.card {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 16px;
+    -fx-border-radius: 16px;
+    -fx-border-color: #f1f5f9;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(15, 23, 42, 0.04), 10, 0, 0, 2);
+}
+
+.card-header {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 16px 16px 0 0;
+    -fx-border-color: #f1f5f9;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 18px 24px;
+}
+
+.card-title {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1e293b;
+}
+
+.card-body {
+    -fx-padding: 24px;
+}
+
+.card-footer {
+    -fx-background-color: #f8fafc;
+    -fx-background-radius: 0 0 16px 16px;
+    -fx-border-color: #f1f5f9;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 14px;
+}
+
+/* Űrlap elemek és Inputok */
+.form-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #334155;
+}
+
+.modern-input, .modern-input-currency, .modern-combo {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cbd5e1;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 10px 14px;
+    -fx-font-size: 14px;
+}
+
+.modern-input-currency {
+    -fx-padding: 10px 36px 10px 14px;
     -fx-font-weight: bold;
 }
+
+.modern-input:focused, .modern-input-currency:focused, .modern-combo:focused {
+    -fx-border-color: #4f46e5;
+    -fx-effect: dropshadow(three-pass-box, rgba(79, 70, 229, 0.25), 6, 0, 0, 0);
+}
+
+.currency-suffix {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 14px;
+}
+
+.split-info-box {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: #f1f5f9;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 14px 16px;
+}
+
+.split-info-text {
+    -fx-text-fill: #475569;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+}
+
+.split-info-link {
+    -fx-text-fill: #4f46e5;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+/* Gombok */
+.btn-primary {
+    -fx-background-color: #4f46e5;
+    -fx-text-fill: #ffffff;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 12px;
+    -fx-padding: 12px;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover {
+    -fx-background-color: #4338ca;
+}
+
+.btn-link {
+    -fx-background-color: transparent;
+    -fx-text-fill: #4f46e5;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+/* Egyenleg kártyák és jelvények */
+.badge-optimized {
+    -fx-background-color: #dcfce7;
+    -fx-text-fill: #15803d;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 4px 10px;
+    -fx-background-radius: 20px;
+}
+
+.debt-card-orange {
+    -fx-background-color: #fff7ed;
+    -fx-border-color: #ffedd5;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 16px;
+}
+
+.debt-amount-orange {
+    -fx-text-fill: #ea580c;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.debt-card-green {
+    -fx-background-color: #f0fdf4;
+    -fx-border-color: #dcfce7;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 16px;
+}
+
+.debt-amount-green {
+    -fx-text-fill: #15803d;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.debt-card-subtitle {
+    -fx-text-fill: #475569;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+}
+
+/* Kiadás lista sorok és Avatarok */
+.expense-row {
+    -fx-padding: 16px 24px;
+    -fx-border-color: #f1f5f9;
+    -fx-border-width: 0 0 1 0;
+}
+
+.expense-row:hover {
+    -fx-background-color: #f8fafc;
+}
+
+.expense-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1e293b;
+}
+
+.expense-meta {
+    -fx-font-size: 12px;
+    -fx-text-fill: #64748b;
+}
+
+.expense-amount {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1e293b;
+}
+
+.avatar-badge-indigo { -fx-background-color: #e0e7ff; -fx-background-radius: 50%; }
+.avatar-text-indigo  { -fx-text-fill: #4f46e5; -fx-font-weight: bold; }
+
+.avatar-badge-rose   { -fx-background-color: #ffe4e6; -fx-background-radius: 50%; }
+.avatar-text-rose    { -fx-text-fill: #e11d48; -fx-font-weight: bold; }
+
+.avatar-badge-emerald { -fx-background-color: #d1fae5; -fx-background-radius: 50%; }
+.avatar-text-emerald  { -fx-text-fill: #059669; -fx-font-weight: bold; }
