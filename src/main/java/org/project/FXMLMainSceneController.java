@@ -57,16 +57,45 @@ public class FXMLMainSceneController {
 
     @FXML
     private void handleSaveExpense() {
-        // 1. Kiolvesszük a beírt adatokat a felületről
+        // 1. Kiolvesszük az adatokat a felületről
         String title = titleField.getText();
         String amountText = amountField.getText();
         String payer = payerComboBox.getValue();
 
-        // 2. Egyelőre konzolra kiírjuk, hogy lássuk, megérkezett-e az adat
-        System.out.println("Mentés gomb megnyomva!");
-        System.out.println("Megnevezés: " + title);
-        System.out.println("Összeg: " + amountText);
-        System.out.println("Ki fizette: " + payer);
+        // Egyszerű ellenőrzés, hogy az összeg ne legyen üres
+        if (amountText == null || amountText.isEmpty()) {
+            System.out.println("Hiba: Az összeg mező nem lehet üres!");
+            return;
+        }
+
+        try {
+            double amount = Double.parseDouble(amountText);
+
+            // 2. JPA EntityManager létrehozása a persistence.xml-ben megadott név alapján
+            javax.persistence.EntityManagerFactory emf = javax.persistence.Persistence.createEntityManagerFactory("BudgetTrackerPU");
+            javax.persistence.EntityManager em = emf.createEntityManager();
+
+            // 3. Adatbázis tranzakció indítása és mentés
+            em.getTransaction().begin();
+
+            org.project.model.Expense expense = new org.project.model.Expense(title, amount, payer);
+            em.persist(expense); // Ezzel mentjük el az objektumot
+
+            em.getTransaction().commit();
+
+            // 4. Erőforrások lezárása
+            em.close();
+            emf.close();
+
+            System.out.println("Sikeresen elmentve az adatbázisba: " + title + " - " + amount + " Ft (" + payer + ")");
+
+            // Mezők kiürítése mentés után
+            titleField.clear();
+            amountField.clear();
+
+        } catch (NumberFormatException e) {
+            System.out.println("Hiba: Az összeg csak érvényes szám lehet!");
+        }
     }
 
     @FXML
