@@ -3,6 +3,7 @@ package org.project;
 import java.util.List;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -53,6 +54,20 @@ public class FXMLMainSceneController {
 
     @FXML
     private VBox recentExpensesBox;
+
+    @FXML
+    private void handleSaveExpense() {
+        // 1. Kiolvesszük a beírt adatokat a felületről
+        String title = titleField.getText();
+        String amountText = amountField.getText();
+        String payer = payerComboBox.getValue();
+
+        // 2. Egyelőre konzolra kiírjuk, hogy lássuk, megérkezett-e az adat
+        System.out.println("Mentés gomb megnyomva!");
+        System.out.println("Megnevezés: " + title);
+        System.out.println("Összeg: " + amountText);
+        System.out.println("Ki fizette: " + payer);
+    }
 
     @FXML
     public void initialize() {
@@ -179,4 +194,6 @@ public class FXMLMainSceneController {
         row.getChildren().addAll(avatar, detailsBox, spacer, amountLabel);
         return row;
     }
+
+
 }
