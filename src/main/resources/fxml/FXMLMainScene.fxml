@@ -125,7 +125,7 @@
                                                     </children>
                                                 </VBox>
 
-                                                <Button fx:id="saveButton" maxWidth="Infinity" mnemonicParsing="false" styleClass="btn-primary" text="Kiadás mentése ✓"/>
+                                                <Button fx:id="saveButton" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleSaveExpense" styleClass="btn-primary" text="Kiadás mentése ✓"/>
                                             </children>
                                         </VBox>
                                     </children>

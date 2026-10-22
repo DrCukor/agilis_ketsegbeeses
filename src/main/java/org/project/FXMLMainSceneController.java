@@ -3,6 +3,7 @@ package org.project;
 import java.util.List;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -53,6 +54,49 @@ public class FXMLMainSceneController {
 
     @FXML
     private VBox recentExpensesBox;
+
+    @FXML
+    private void handleSaveExpense() {
+        // 1. Kiolvesszük az adatokat a felületről
+        String title = titleField.getText();
+        String amountText = amountField.getText();
+        String payer = payerComboBox.getValue();
+
+        // Egyszerű ellenőrzés, hogy az összeg ne legyen üres
+        if (amountText == null || amountText.isEmpty()) {
+            System.out.println("Hiba: Az összeg mező nem lehet üres!");
+            return;
+        }
+
+        try {
+            double amount = Double.parseDouble(amountText);
+
+            // 2. JPA EntityManager létrehozása a persistence.xml-ben megadott név alapján
+            javax.persistence.EntityManagerFactory emf = javax.persistence.Persistence.createEntityManagerFactory("BudgetTrackerPU");
+            javax.persistence.EntityManager em = emf.createEntityManager();
+
+            // 3. Adatbázis tranzakció indítása és mentés
+            em.getTransaction().begin();
+
+            org.project.model.Expense expense = new org.project.model.Expense(title, amount, payer);
+            em.persist(expense); // Ezzel mentjük el az objektumot
+
+            em.getTransaction().commit();
+
+            // 4. Erőforrások lezárása
+            em.close();
+            emf.close();
+
+            System.out.println("Sikeresen elmentve az adatbázisba: " + title + " - " + amount + " Ft (" + payer + ")");
+
+            // Mezők kiürítése mentés után
+            titleField.clear();
+            amountField.clear();
+
+        } catch (NumberFormatException e) {
+            System.out.println("Hiba: Az összeg csak érvényes szám lehet!");
+        }
+    }
 
     @FXML
     public void initialize() {
@@ -179,4 +223,6 @@ public class FXMLMainSceneController {
         row.getChildren().addAll(avatar, detailsBox, spacer, amountLabel);
         return row;
     }
+
+
 }
