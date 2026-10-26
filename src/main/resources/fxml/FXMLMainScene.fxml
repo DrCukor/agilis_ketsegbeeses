@@ -94,34 +94,21 @@
                                                     </children>
                                                 </HBox>
 
-                                                <!-- Elosztás opciók: Mindenki (4 fő) VAGY 2 lenyitható fül -->
+                                                <!-- Elosztás opciók: Megosztás módja + Dinamikus résztvevők -->
                                                 <VBox spacing="14.0" styleClass="split-info-box">
                                                     <children>
                                                         <HBox alignment="CENTER_LEFT" spacing="12.0">
                                                             <children>
                                                                 <Label styleClass="split-info-text" text="Kik között oszlik meg?"/>
                                                                 <Region HBox.hgrow="ALWAYS"/>
-                                                                <ComboBox fx:id="splitModeComboBox" styleClass="modern-combo"/>
+                                                                <ComboBox fx:id="splitTypeComboBox" styleClass="modern-combo"/>
                                                             </children>
                                                         </HBox>
 
-                                                        <!-- A 2 egymást kizáró lenyitható fül konténere -->
-                                                        <HBox fx:id="customSplitBox" spacing="16.0" visible="false" managed="false">
-                                                            <children>
-                                                                <VBox HBox.hgrow="ALWAYS" spacing="6.0">
-                                                                    <children>
-                                                                        <Label styleClass="form-label" text="1. személy"/>
-                                                                        <ComboBox fx:id="splitPerson1ComboBox" maxWidth="Infinity" styleClass="modern-combo"/>
-                                                                    </children>
-                                                                </VBox>
-                                                                <VBox HBox.hgrow="ALWAYS" spacing="6.0">
-                                                                    <children>
-                                                                        <Label styleClass="form-label" text="2. személy"/>
-                                                                        <ComboBox fx:id="splitPerson2ComboBox" maxWidth="Infinity" styleClass="modern-combo"/>
-                                                                    </children>
-                                                                </VBox>
-                                                            </children>
-                                                        </HBox>
+                                                        <!-- Dinamikusan generált CheckBox-ok és értékmezők konténere -->
+                                                        <VBox fx:id="participantsContainer" spacing="10.0">
+                                                            <!-- A kontroller építi fel dinamikusan futásidőben -->
+                                                        </VBox>
                                                     </children>
                                                 </VBox>
 

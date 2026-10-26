@@ -1,13 +1,15 @@
 package org.project;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -21,12 +23,16 @@ import org.project.services.DebtService;
 
 public class FXMLMainSceneController {
 
-    private static final String MODE_EVERYONE = "Mindenki egyenlően (4 fő)";
-    private static final String MODE_TWO_USERS = "Két személy között (2 fő)";
+    private static final String SPLIT_EQUAL = "Egyenlően";
+    private static final String SPLIT_FIXED = "Fix összegek (Ft)";
+    private static final String SPLIT_PERCENTAGE = "Százalékos arány (%)";
 
-    // A véglegesített 4 fős felhasználói lista
+    // A véglegesített 4 fős felhasználói lista[cite: 1]
     private final List<String> allUsers = List.of("Ádám", "Dávid", "Levente", "Zoltán");
-    private boolean isUpdatingCombos = false;
+
+    // UI elemek nyilvántartása a dinamikus generáláshoz
+    private final Map<String, CheckBox> userCheckBoxes = new HashMap<>();
+    private final Map<String, TextField> userValueFields = new HashMap<>();
 
     @FXML
     private TextField titleField;
@@ -38,16 +44,10 @@ public class FXMLMainSceneController {
     private ComboBox<String> payerComboBox;
 
     @FXML
-    private ComboBox<String> splitModeComboBox;
+    private ComboBox<String> splitTypeComboBox;
 
     @FXML
-    private HBox customSplitBox;
-
-    @FXML
-    private ComboBox<String> splitPerson1ComboBox;
-
-    @FXML
-    private ComboBox<String> splitPerson2ComboBox;
+    private VBox participantsContainer;
 
     @FXML
     private Button saveButton;
@@ -59,156 +59,197 @@ public class FXMLMainSceneController {
     private VBox recentExpensesBox;
 
     @FXML
+    public void initialize() {
+        // 1. "Ki fizette?" legördülő menü feltöltése a 4 fővel[cite: 1]
+        payerComboBox.setItems(FXCollections.observableArrayList(allUsers));
+        payerComboBox.setValue("Zoltán");
+
+        // 2. Elosztási módok beállítása
+        splitTypeComboBox.setItems(FXCollections.observableArrayList(SPLIT_EQUAL, SPLIT_FIXED, SPLIT_PERCENTAGE));
+        splitTypeComboBox.setValue(SPLIT_EQUAL);
+
+        // 3. Résztvevők sorainak dinamikus felépítése (CheckBox + TextField)
+        buildParticipantsUI();
+
+        // 4. Módváltás eseménykezelője a mezők láthatóságához
+        splitTypeComboBox.valueProperty().addListener((obs, oldVal, newVal) -> updateFieldsVisibility());
+    }
+
+    /**
+     * Dinamikusan legenerálja minden csapattagnak a CheckBox-ot és a mellette lévő értékmezőt.
+     */
+    private void buildParticipantsUI() {
+        participantsContainer.getChildren().clear();
+        userCheckBoxes.clear();
+        userValueFields.clear();
+
+        for (String user : allUsers) {
+            HBox row = new HBox(12);
+            row.setAlignment(Pos.CENTER_LEFT);
+
+            CheckBox checkBox = new CheckBox(user);
+            checkBox.setSelected(true); // Alapértelmezetten mindenki ki van választva
+            userCheckBoxes.put(user, checkBox);
+
+            TextField valueField = new TextField();
+            valueField.setPromptText("0");
+            valueField.setPrefWidth(100);
+            valueField.setVisible(false); // Alapértelmezetten rejtve ("Egyenlően" mód miatt)
+            userValueFields.put(user, valueField);
+
+            // Ha kiveszzük a pipát, letiltjuk és kiürítjük a hozzá tartozó mezőt
+            checkBox.selectedProperty().addListener((obs, oldVal, isSelected) -> {
+                valueField.setDisable(!isSelected);
+                if (!isSelected) {
+                    valueField.clear();
+                }
+            });
+
+            Region spacer = new Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+
+            row.getChildren().addAll(checkBox, spacer, valueField);
+            participantsContainer.getChildren().add(row);
+        }
+    }
+
+    /**
+     * Frissíti a beviteli mezők láthatóságát és prompt szövegeit a kiválasztott megosztási mód alapján.
+     */
+    private void updateFieldsVisibility() {
+        String mode = splitTypeComboBox.getValue();
+        boolean showFields = !SPLIT_EQUAL.equals(mode);
+
+        for (String user : allUsers) {
+            TextField field = userValueFields.get(user);
+            field.setVisible(showFields);
+            field.setManaged(showFields);
+
+            if (SPLIT_FIXED.equals(mode)) {
+                field.setPromptText("Ft");
+            } else if (SPLIT_PERCENTAGE.equals(mode)) {
+                field.setPromptText("%");
+            }
+        }
+    }
+
+    @FXML
     private void handleSaveExpense() {
-        // 1. Kiolvesszük az adatokat a felületről
         String title = titleField.getText();
         String amountText = amountField.getText();
         String payer = payerComboBox.getValue();
+        String splitMode = splitTypeComboBox.getValue();
 
-        // Egyszerű ellenőrzés, hogy az összeg ne legyen üres
+        // Egyszerű ellenőrzés, hogy az összeg ne legyen üres[cite: 1]
         if (amountText == null || amountText.isEmpty()) {
             System.out.println("Hiba: Az összeg mező nem lehet üres!");
             return;
         }
 
         try {
-            double amount = Double.parseDouble(amountText);
-            if(amount <= 0 || !Double.isFinite(amount)){
-                throw new IllegalArgumentException("Az összeg érvénytelen.");
+            double totalAmount = Double.parseDouble(amountText);
+            if (totalAmount <= 0 || !Double.isFinite(totalAmount)) {
+                throw new IllegalArgumentException("Az összeg érvénytelen.");[cite: 1]
             }
-            // Résztvevők kiválasztásának kivitelezése, ellenőrzése
-            List<String> participants = new ArrayList<>();
 
-            if(MODE_EVERYONE.equals(splitModeComboBox.getValue())){
-                participants = new ArrayList<>(allUsers);
-            } else if (MODE_TWO_USERS.equals(splitModeComboBox.getValue())) {
-                String person1 = splitPerson1ComboBox.getValue();
-                String person2 = splitPerson2ComboBox.getValue();
-                if(person1 == null || person2 == null || person1.equals(person2)){
-                    throw new IllegalArgumentException("Két különböző személyt válassz!");
+            // Kijelölt résztvevők kigyűjtése a CheckBox-ok alapján
+            List<String> selectedUsers = allUsers.stream()
+                    .filter(user -> userCheckBoxes.get(user).isSelected())
+                    .collect(Collectors.toList());
+
+            if (selectedUsers.isEmpty()) {
+                throw new IllegalArgumentException("Legalább egy résztvevőt ki kell választani!");
+            }
+
+            // Részesedések kiszámítása és validálása mód szerint
+            Map<String, Double> userShares = new HashMap<>();
+
+            if (SPLIT_EQUAL.equals(splitMode)) {
+                double share = totalAmount / selectedUsers.size();
+                for (String user : selectedUsers) {
+                    userShares.put(user, share);
                 }
-                participants = List.of(person1,person2);
-            }else {
-                throw new IllegalArgumentException("Válassz megosztási módot!");
+            } else if (SPLIT_FIXED.equals(splitMode)) {
+                double currentSum = 0;
+                for (String user : selectedUsers) {
+                    String text = userValueFields.get(user).getText();
+                    double val = (text == null || text.trim().isEmpty()) ? 0.0 : Double.parseDouble(text);
+                    if (val < 0) {
+                        throw new IllegalArgumentException("A megadott összeg nem lehet negatív!");
+                    }
+                    userShares.put(user, val);
+                    currentSum += val;
+                }
+
+                if (Math.abs(currentSum - totalAmount) > 0.01) {
+                    throw new IllegalArgumentException(
+                            String.format("A megadott fix összegek összege (%.2f Ft) nem egyezik a teljes összeggel (%.2f Ft)!", currentSum, totalAmount)
+                    );
+                }
+            } else if (SPLIT_PERCENTAGE.equals(splitMode)) {
+                double totalPercent = 0;
+                for (String user : selectedUsers) {
+                    String text = userValueFields.get(user).getText();
+                    double pct = (text == null || text.trim().isEmpty()) ? 0.0 : Double.parseDouble(text);
+                    if (pct < 0) {
+                        throw new IllegalArgumentException("A százalék nem lehet negatív!");
+                    }
+                    userShares.put(user, totalAmount * (pct / 100.0));
+                    totalPercent += pct;
+                }
+
+                if (Math.abs(totalPercent - 100.0) > 0.01) {
+                    throw new IllegalArgumentException(
+                            String.format("A megadott százalékok összege (%.2f%%) nem 100%%!", totalPercent)
+                    );
+                }
             }
 
-            // 2. JPA EntityManager létrehozása a persistence.xml-ben megadott név alapján
+            // JPA EntityManager létrehozása[cite: 1]
             javax.persistence.EntityManagerFactory emf = javax.persistence.Persistence.createEntityManagerFactory("BudgetTrackerPU");
             javax.persistence.EntityManager em = emf.createEntityManager();
 
-            org.project.model.Expense expense = new org.project.model.Expense(title, amount, payer, participants);
+            org.project.model.Expense expense = new org.project.model.Expense(title, totalAmount, payer, selectedUsers);
             DebtService debtService = new DebtService();
             List<Debt> debts = debtService.calculateDebts(expense);
+
             try {
-                // 3. Adatbázis tranzakció indítása és mentés
                 em.getTransaction().begin();
-                em.persist(expense); // Ezzel mentjük el az  expense objektumot
-                for(Debt debt: debts){
+                em.persist(expense);
+                for (Debt debt : debts) {
                     em.persist(debt);
                 }
                 em.getTransaction().commit();
-            }catch (RuntimeException e){
-                if(em != null && em.getTransaction().isActive()){
+            } catch (RuntimeException e) {
+                if (em != null && em.getTransaction().isActive()) {
                     em.getTransaction().rollback();
                 }
                 throw e;
-            }finally {
-                // 4. Erőforrások lezárása
-                if (em != null){
-                    em.close();
-                }
-                if (emf != null){
-                    emf.close();
-                }
-
+            } finally {
+                if (em != null) em.close();
+                if (emf != null) emf.close();
             }
 
-            System.out.println("Sikeresen elmentve az adatbázisba: " + title + " - " + amount + " Ft (" + payer + ")");
-            System.out.println("Sikeresen fellosztva.");
-            for(Debt debt: debts){
-                System.out.println(debt.getDebtor() + " tartozik neki: " + debt.getCreditor() + " ennyivel: " + debt.getAmount());
+            System.out.println("Sikeresen elmentve az adatbázisba: " + title + " - " + totalAmount + " Ft (" + payer + ")");[cite: 1]
+            System.out.println("Sikeresen felosztva.");
+            for (Debt debt : debts) {
+                System.out.println(debt.getDebtor() + " tartozik neki: " + debt.getCreditor() + " ennyivel: " + debt.getAmount());[cite: 1]
             }
-            // Mezők kiürítése mentés után
+
+            // Mezők kiürítése és alaphelyzetbe állítása mentés után[cite: 1]
             titleField.clear();
             amountField.clear();
+            buildParticipantsUI();
 
         } catch (NumberFormatException e) {
-            System.out.println("Hiba: Az összeg csak érvényes szám lehet!");
-        }
-    }
-
-    @FXML
-    public void initialize() {
-        // 1. "Ki fizette?" legördülő menü feltöltése a 4 fővel
-        payerComboBox.setItems(FXCollections.observableArrayList(allUsers));
-        payerComboBox.setValue("Zoltán");
-
-        // 2. Megosztás módja választó ("Mindenki (4 fő)" vs "2 lenyitható fül")
-        splitModeComboBox.setItems(FXCollections.observableArrayList(MODE_EVERYONE, MODE_TWO_USERS));
-        splitModeComboBox.getSelectionModel().selectFirst();
-
-        splitModeComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
-            boolean isCustom = MODE_TWO_USERS.equals(newVal);
-            customSplitBox.setVisible(isCustom);
-            customSplitBox.setManaged(isCustom);
-        });
-
-        // 3. Kétfős megosztás legördülő menük inicializálása és kölcsönös kizárása
-        setupMutuallyExclusiveComboBoxes();
-    }
-
-    private void setupMutuallyExclusiveComboBoxes() {
-        // Kezdeti állapot: 1. fülön Ádám, 2. fülön Dávid
-        String initialUser1 = allUsers.get(0);
-        String initialUser2 = allUsers.get(1);
-
-        updateComboItems(splitPerson1ComboBox, initialUser2, initialUser1);
-        updateComboItems(splitPerson2ComboBox, initialUser1, initialUser2);
-
-        // Ha az 1. fülön változik a kiválasztott személy -> frissítjük a 2. fület (csak a másik 3 fő marad benne)
-        splitPerson1ComboBox.valueProperty().addListener((obs, oldVal, newSelected1) -> {
-            if (isUpdatingCombos || newSelected1 == null) {
-                return;
-            }
-            isUpdatingCombos = true;
-            String currentSelected2 = splitPerson2ComboBox.getValue();
-            updateComboItems(splitPerson2ComboBox, newSelected1, currentSelected2);
-            updateComboItems(splitPerson1ComboBox, splitPerson2ComboBox.getValue(), newSelected1);
-            isUpdatingCombos = false;
-        });
-
-        // Ha a 2. fülön változik a kiválasztott személy -> frissítjük az 1. fület (csak a másik 3 fő marad benne)
-        splitPerson2ComboBox.valueProperty().addListener((obs, oldVal, newSelected2) -> {
-            if (isUpdatingCombos || newSelected2 == null) {
-                return;
-            }
-            isUpdatingCombos = true;
-            String currentSelected1 = splitPerson1ComboBox.getValue();
-            updateComboItems(splitPerson1ComboBox, newSelected2, currentSelected1);
-            updateComboItems(splitPerson2ComboBox, splitPerson1ComboBox.getValue(), newSelected2);
-            isUpdatingCombos = false;
-        });
-    }
-
-    /**
-     * Frissíti a megadott ComboBox elemeit úgy, hogy kizárja a másik fülön kiválasztott személyt.
-     */
-    private void updateComboItems(ComboBox<String> targetCombo, String excludedUser, String preferredSelection) {
-        List<String> availableUsers = allUsers.stream()
-                .filter(user -> !user.equals(excludedUser))
-                .collect(Collectors.toList());
-
-        targetCombo.setItems(FXCollections.observableArrayList(availableUsers));
-
-        if (preferredSelection != null && availableUsers.contains(preferredSelection)) {
-            targetCombo.setValue(preferredSelection);
-        } else if (!availableUsers.isEmpty()) {
-            targetCombo.setValue(availableUsers.get(0));
+            System.out.println("Hiba: Az összeg vagy érték csak érvényes szám lehet!");[cite: 1]
+        } catch (IllegalArgumentException e) {
+            System.out.println("Hiba: " + e.getMessage());
         }
     }
 
     /**
-     * Dinamikusan legenerál egy Egyenleg (Tartozás) kártyát a Styles.css osztályaival.
+     * Dinamikusan legenerál egy Egyenleg (Tartozás) kártyát a Styles.css osztályaival.[cite: 1]
      */
     public HBox createDebtCard(String subtitle, String amountText, boolean isGreen) {
         HBox card = new HBox(14.0);
@@ -230,7 +271,7 @@ public class FXMLMainSceneController {
     }
 
     /**
-     * Dinamikusan legenerál egy sort a Legutóbbi kiadások listába.
+     * Dinamikusan legenerál egy sort a Legutóbbi kiadások listába.[cite: 1]
      */
     public HBox createExpenseRow(String monogram, String title, String meta, String amountText, String colorTheme) {
         HBox row = new HBox(14.0);
@@ -262,6 +303,4 @@ public class FXMLMainSceneController {
         row.getChildren().addAll(avatar, detailsBox, spacer, amountLabel);
         return row;
     }
-
-
 }
