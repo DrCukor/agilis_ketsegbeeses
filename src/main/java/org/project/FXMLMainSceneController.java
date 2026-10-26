@@ -66,33 +66,34 @@ public class FXMLMainSceneController {
         String payer = payerComboBox.getValue();
 
         // Egyszerű ellenőrzés, hogy az összeg ne legyen üres
-        if (amountText == null || amountText.isEmpty()) {
+        if (amountText == null || amountText.trim().isEmpty()) {
             System.out.println("Hiba: Az összeg mező nem lehet üres!");
             return;
         }
 
         try {
-            double amount = Double.parseDouble(amountText);
-            if(amount <= 0 || !Double.isFinite(amount)){
+// Vessző cseréje pontra, hogy a tört számok se okozzanak hibát
+            double amount = Double.parseDouble(amountText.trim().replace(',', '.'));
+            if (amount <= 0 || !Double.isFinite(amount)) {
                 throw new IllegalArgumentException("Az összeg érvénytelen.");
             }
+
             // Résztvevők kiválasztásának kivitelezése, ellenőrzése
             List<String> participants = new ArrayList<>();
 
-            if(MODE_EVERYONE.equals(splitModeComboBox.getValue())){
+            if (MODE_EVERYONE.equals(splitModeComboBox.getValue())) {
                 participants = new ArrayList<>(allUsers);
             } else if (MODE_TWO_USERS.equals(splitModeComboBox.getValue())) {
                 String person1 = splitPerson1ComboBox.getValue();
                 String person2 = splitPerson2ComboBox.getValue();
-                if(person1 == null || person2 == null || person1.equals(person2)){
+                if (person1 == null || person2 == null || person1.equals(person2)) {
                     throw new IllegalArgumentException("Két különböző személyt válassz!");
                 }
-                participants = List.of(person1,person2);
-            }else {
+                participants = List.of(person1, person2);
+            } else {
                 throw new IllegalArgumentException("Válassz megosztási módot!");
             }
-
-            // 2. JPA EntityManager létrehozása a persistence.xml-ben megadott név alapján
+            // 2. JPA EntityManager létrehozása
             javax.persistence.EntityManagerFactory emf = javax.persistence.Persistence.createEntityManagerFactory("BudgetTrackerPU");
             javax.persistence.EntityManager em = emf.createEntityManager();
 
@@ -131,6 +132,7 @@ public class FXMLMainSceneController {
             // Mezők kiürítése mentés után
             titleField.clear();
             amountField.clear();
+            loadExpenses();
 
         } catch (NumberFormatException e) {
             System.out.println("Hiba: Az összeg csak érvényes szám lehet!");
@@ -138,7 +140,42 @@ public class FXMLMainSceneController {
     }
 
     @FXML
+    private void loadExpenses() {
+        System.out.println("--- loadExpenses() elindult ---");
+
+        if (recentExpensesBox == null) {
+            System.out.println("HIBA: a recentExpensesBox értéke NULL! (Nincs összekötve az FXML-lel)");
+            return;
+        }
+
+        recentExpensesBox.getChildren().clear();
+
+        javax.persistence.EntityManagerFactory emf = javax.persistence.Persistence.createEntityManagerFactory("BudgetTrackerPU");
+        javax.persistence.EntityManager em = emf.createEntityManager();
+
+        try {
+            java.util.List<org.project.model.Expense> expenses = em.createQuery("SELECT e FROM Expense e", org.project.model.Expense.class).getResultList();
+            System.out.println("Adatbázisból betöltve: " + expenses.size() + " db kiadás.");
+
+            for (org.project.model.Expense expense : expenses) {
+                String displayText = expense.getTitle() + " - " + expense.getAmount() + " Ft (" + expense.getPayer() + ")";
+
+                javafx.scene.control.Label expenseLabel = new javafx.scene.control.Label(displayText);
+                expenseLabel.setStyle("-fx-text-fill: black; -fx-font-size: 14px; -fx-padding: 4px;");
+
+                recentExpensesBox.getChildren().add(expenseLabel);
+            }
+        } catch (Exception e) {
+            System.out.println("Hiba a lekérdezésnél: " + e.getMessage());
+        } finally {
+            em.close();
+            emf.close();
+        }
+    }
+
+    @FXML
     public void initialize() {
+
         // 1. "Ki fizette?" legördülő menü feltöltése a 4 fővel
         payerComboBox.setItems(FXCollections.observableArrayList(allUsers));
         payerComboBox.setValue("Zoltán");
@@ -155,6 +192,20 @@ public class FXMLMainSceneController {
 
         // 3. Kétfős megosztás legördülő menük inicializálása és kölcsönös kizárása
         setupMutuallyExclusiveComboBoxes();
+
+        // 4. Számok és tizedesjegyek szűrése az összeg mezőben
+        java.util.function.UnaryOperator<javafx.scene.control.TextFormatter.Change> filter = change -> {
+            String newText = change.getControlNewText();
+            if (newText.matches("\\d*([.,]\\d*)?")) {
+                return change;
+            }
+            return null;
+        };
+        amountField.setTextFormatter(new javafx.scene.control.TextFormatter<>(filter));
+
+        // 5. Kiadások betöltése az adatbázisból induláskor
+
+        loadExpenses(); // Frissíti a listát mentés után
     }
 
     private void setupMutuallyExclusiveComboBoxes() {
