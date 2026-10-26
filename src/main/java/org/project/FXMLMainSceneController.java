@@ -1,5 +1,6 @@
 package org.project;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import javafx.collections.FXCollections;
@@ -15,6 +16,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import org.project.model.Debt;
+import org.project.services.DebtService;
 
 public class FXMLMainSceneController {
 
@@ -70,25 +73,61 @@ public class FXMLMainSceneController {
 
         try {
             double amount = Double.parseDouble(amountText);
+            if(amount <= 0 || !Double.isFinite(amount)){
+                throw new IllegalArgumentException("Az összeg érvénytelen.");
+            }
+            // Résztvevők kiválasztásának kivitelezése, ellenőrzése
+            List<String> participants = new ArrayList<>();
+
+            if(MODE_EVERYONE.equals(splitModeComboBox.getValue())){
+                participants = new ArrayList<>(allUsers);
+            } else if (MODE_TWO_USERS.equals(splitModeComboBox.getValue())) {
+                String person1 = splitPerson1ComboBox.getValue();
+                String person2 = splitPerson2ComboBox.getValue();
+                if(person1 == null || person2 == null || person1.equals(person2)){
+                    throw new IllegalArgumentException("Két különböző személyt válassz!");
+                }
+                participants = List.of(person1,person2);
+            }else {
+                throw new IllegalArgumentException("Válassz megosztási módot!");
+            }
 
             // 2. JPA EntityManager létrehozása a persistence.xml-ben megadott név alapján
             javax.persistence.EntityManagerFactory emf = javax.persistence.Persistence.createEntityManagerFactory("BudgetTrackerPU");
             javax.persistence.EntityManager em = emf.createEntityManager();
 
-            // 3. Adatbázis tranzakció indítása és mentés
-            em.getTransaction().begin();
+            org.project.model.Expense expense = new org.project.model.Expense(title, amount, payer, participants);
+            DebtService debtService = new DebtService();
+            List<Debt> debts = debtService.calculateDebts(expense);
+            try {
+                // 3. Adatbázis tranzakció indítása és mentés
+                em.getTransaction().begin();
+                em.persist(expense); // Ezzel mentjük el az  expense objektumot
+                for(Debt debt: debts){
+                    em.persist(debt);
+                }
+                em.getTransaction().commit();
+            }catch (RuntimeException e){
+                if(em != null && em.getTransaction().isActive()){
+                    em.getTransaction().rollback();
+                }
+                throw e;
+            }finally {
+                // 4. Erőforrások lezárása
+                if (em != null){
+                    em.close();
+                }
+                if (emf != null){
+                    emf.close();
+                }
 
-            org.project.model.Expense expense = new org.project.model.Expense(title, amount, payer);
-            em.persist(expense); // Ezzel mentjük el az objektumot
-
-            em.getTransaction().commit();
-
-            // 4. Erőforrások lezárása
-            em.close();
-            emf.close();
+            }
 
             System.out.println("Sikeresen elmentve az adatbázisba: " + title + " - " + amount + " Ft (" + payer + ")");
-
+            System.out.println("Sikeresen fellosztva.");
+            for(Debt debt: debts){
+                System.out.println(debt.getDebtor() + " tartozik neki: " + debt.getCreditor() + " ennyivel: " + debt.getAmount());
+            }
             // Mezők kiürítése mentés után
             titleField.clear();
             amountField.clear();
