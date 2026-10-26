@@ -26,5 +26,5 @@ A **KözösKassza** egy modern, átlátható és könnyen használható asztali 
 # Credits:
 - Levi
 - Zoli
-- ádám
+- Ádám
 - Dávid
