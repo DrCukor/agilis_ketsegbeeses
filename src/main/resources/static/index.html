@@ -239,24 +239,43 @@
         </div>
     </main>
 <script>
+    // Globális állapottárolás
+    let allExpensesCache = [];
     const allUsers = ["Ádám", "Dávid", "Levente", "Zoltán"];
 
-    // 1. Legördülő menük feltöltése
+    // 1. Felhasználói legördülő menük feltöltése
     function initUserDropdowns() {
         const payerSelect = document.getElementById("payer");
-        payerSelect.innerHTML = allUsers.map(u => `<option value="${u}">${u}</option>`).join('');
-        payerSelect.value = "Zoltán";
+        if (payerSelect) {
+            payerSelect.innerHTML = allUsers.map(u => `<option value="${u}">${u}</option>`).join('');
+            payerSelect.value = "Zoltán";
+        }
+
+        // Modal szűrőjének feltöltése a regisztrált személyekkel
+        const modalPayerFilter = document.getElementById("modalFilterPayer");
+        if (modalPayerFilter) {
+            modalPayerFilter.innerHTML = `<option value="ALL">Minden fizető</option>` +
+                allUsers.map(u => `<option value="${u}">${u}</option>`).join('');
+        }
     }
 
-    // 2. Kiadások és egyenlegek betöltése az API-ból
+    // 2. Szín és monogram segédfüggvények
+    function getAvatarColor(payer) {
+        if (payer === "Dávid") return { bg: "bg-rose-100", text: "text-rose-600" };
+        if (payer === "Levente") return { bg: "bg-emerald-100", text: "text-emerald-600" };
+        if (payer === "Ádám") return { bg: "bg-amber-100", text: "text-amber-600" };
+        return { bg: "bg-indigo-100", text: "text-indigo-600" };
+    }
+
+    // 3. Főoldali kiadások és egyenlegek lekérése
     async function loadData() {
         try {
-            // Legutóbbi kiadások
             const expRes = await fetch('/api/expenses');
-            const expenses = await expRes.json();
-            renderExpenses(expenses);
+            allExpensesCache = await expRes.json();
 
-            // Optimalizált egyenlegek
+            // Főoldalon csak a legutóbbi 5 kiadást mutatjuk
+            renderRecentExpenses(allExpensesCache.slice(0, 5));
+
             const balRes = await fetch('/api/balances');
             const balances = await balRes.json();
             renderBalances(balances);
@@ -265,7 +284,7 @@
         }
     }
 
-    function renderExpenses(expenses) {
+    function renderRecentExpenses(expenses) {
         const listContainer = document.querySelector(".divide-y");
         if (!listContainer) return;
 
@@ -274,22 +293,25 @@
             return;
         }
 
-        listContainer.innerHTML = expenses.map(e => `
-            <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm">
-                        ${e.payer.charAt(0)}
+        listContainer.innerHTML = expenses.map(e => {
+            const colors = getAvatarColor(e.payer);
+            return `
+                <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full ${colors.bg} ${colors.text} flex items-center justify-center font-bold text-sm">
+                            ${e.payer.charAt(0)}
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-slate-800">${e.title}</p>
+                            <p class="text-xs text-slate-500">Fizette: ${e.payer}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-sm font-bold text-slate-800">${e.title}</p>
-                        <p class="text-xs text-slate-500">Fizette: ${e.payer}</p>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-slate-800">${Math.round(e.amount).toLocaleString()} Ft</p>
                     </div>
                 </div>
-                <div class="text-right">
-                    <p class="text-sm font-bold text-slate-800">${Math.round(e.amount).toLocaleString()} Ft</p>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     function renderBalances(balances) {
@@ -306,7 +328,7 @@
             const bgClass = isMe ? "bg-green-50 border-green-100" : "bg-orange-50 border-orange-100";
             const textClass = isMe ? "text-green-700" : "text-orange-600";
             return `
-                <div class="${bgClass} border rounded-xl p-4 flex items-center gap-4">
+                <div class="${bgClass} border rounded-xl p-4 flex items-center justify-between">
                     <div>
                         <p class="text-sm text-slate-600 font-medium">${b.debtor} tartozik <span class="font-bold text-slate-800">${b.creditor}nak</span></p>
                         <p class="text-lg font-bold ${textClass}">${Math.round(b.amount).toLocaleString()} Ft</p>
@@ -316,7 +338,81 @@
         }).join('');
     }
 
-    // 3. Űrlap beküldése
+    // 4. Modal megjelenítés és szűrés
+    function openAllExpensesModal() {
+        const modal = document.getElementById("allExpensesModal");
+        modal.classList.remove("hidden");
+        document.body.classList.add("overflow-hidden"); // Háttérgörgetés letiltása
+        filterAndRenderModalExpenses();
+    }
+
+    function closeAllExpensesModal() {
+        const modal = document.getElementById("allExpensesModal");
+        modal.classList.add("hidden");
+        document.body.classList.remove("overflow-hidden");
+    }
+
+    function filterAndRenderModalExpenses() {
+        const searchKeyword = document.getElementById("modalSearchInput").value.toLowerCase().trim();
+        const selectedPayer = document.getElementById("modalFilterPayer").value;
+
+        const filtered = allExpensesCache.filter(e => {
+            const matchesTitle = e.title.toLowerCase().includes(searchKeyword);
+            const matchesPayer = selectedPayer === "ALL" || e.payer === selectedPayer;
+            return matchesTitle && matchesPayer;
+        });
+
+        // Darabszám és összesített összeg frissítése
+        document.getElementById("modalExpensesCount").textContent = `${filtered.length} tranzakció találat (összesen: ${allExpensesCache.length})`;
+        const totalAmount = filtered.reduce((acc, curr) => acc + curr.amount, 0);
+        document.getElementById("modalTotalFilteredAmount").textContent = `${Math.round(totalAmount).toLocaleString()} Ft`;
+
+        const container = document.getElementById("modalExpensesList");
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="py-12 text-center text-slate-400">
+                    <p class="text-sm">Nem található kiadás a megadott szűrési feltételekkel.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = filtered.map(e => {
+            const colors = getAvatarColor(e.payer);
+            const participantsCount = e.participants ? e.participants.length : 4;
+            const share = Math.round(e.amount / participantsCount);
+            const participantsList = e.participants ? e.participants.join(', ') : 'Mindenki';
+
+            return `
+                <div class="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors">
+                    <div class="flex items-start gap-4">
+                        <div class="w-11 h-11 rounded-xl ${colors.bg} ${colors.text} flex items-center justify-center font-bold text-base flex-shrink-0 mt-0.5">
+                            ${e.payer.charAt(0)}
+                        </div>
+                        <div>
+                            <h4 class="text-base font-bold text-slate-800 leading-tight">${e.title}</h4>
+                            <div class="flex flex-wrap items-center gap-2 mt-1.5">
+                                <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 font-semibold text-slate-600">
+                                    Fizette: <strong class="text-slate-800">${e.payer}</strong>
+                                </span>
+                                <span class="text-xs text-slate-400">•</span>
+                                <span class="text-xs text-slate-500">
+                                    Megosztva (${participantsCount} fő): <span class="text-slate-700">${participantsList}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-left sm:text-right flex-shrink-0 pl-15 sm:pl-0">
+                        <p class="text-base font-bold text-slate-900">${Math.round(e.amount).toLocaleString()} Ft</p>
+                        <p class="text-xs text-indigo-600 font-medium">${share.toLocaleString()} Ft / fő</p>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // 5. Kiadás beküldése
     async function submitExpense() {
         const title = document.getElementById("title").value.trim();
         const amount = parseFloat(document.getElementById("amount").value);
@@ -331,7 +427,7 @@
             title: title,
             amount: amount,
             payer: payer,
-            participants: allUsers // Vagy a kiválasztott 2 fő
+            participants: allUsers
         };
 
         const res = await fetch('/api/expenses', {
@@ -343,19 +439,109 @@
         if (res.ok) {
             document.getElementById("title").value = "";
             document.getElementById("amount").value = "";
-            loadData();
+            await loadData();
         } else {
             const err = await res.text();
             alert("Hiba történt: " + err);
         }
     }
 
+    // Eseményfigyelők inicializálása
     document.addEventListener("DOMContentLoaded", () => {
         initUserDropdowns();
         loadData();
+
+        // Mentés gomb bekötése
         const submitBtn = document.querySelector("button[type='button']");
         if (submitBtn) submitBtn.addEventListener("click", submitExpense);
+
+        // "Összes megtekintése" gomb eseménykezelője a jobb oldali kártya alján
+        const viewAllBtn = document.querySelector(".divide-y").parentElement.querySelector("button");
+        if (viewAllBtn) {
+            viewAllBtn.addEventListener("click", openAllExpensesModal);
+        }
+
+        // Modal bezáró gombok
+        document.getElementById("closeModalBtn").addEventListener("click", closeAllExpensesModal);
+        document.getElementById("closeModalFooterBtn").addEventListener("click", closeAllExpensesModal);
+
+        // Modal bezárása háttérkattintásra
+        document.getElementById("allExpensesModal").addEventListener("click", (e) => {
+            if (e.target.id === "allExpensesModal") closeAllExpensesModal();
+        });
+
+        // Modal bezárása ESC billentyűre
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") closeAllExpensesModal();
+        });
+
+        // Szűrő és kereső bemenetek figyelése
+        document.getElementById("modalSearchInput").addEventListener("input", filterAndRenderModalExpenses);
+        document.getElementById("modalFilterPayer").addEventListener("change", filterAndRenderModalExpenses);
     });
 </script>
+    <!-- ÖSSZES KIADÁS MODAL -->
+    <div id="allExpensesModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden transition-all">
+
+            <!-- Modal Fejléc -->
+            <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                        <svg class="w-5 h-5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">Összes rögzített kiadás</h3>
+                        <p class="text-xs text-slate-500" id="modalExpensesCount">0 tranzakció rögzítve</p>
+                    </div>
+                </div>
+                <button type="button" id="closeModalBtn" class="w-9 h-9 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Kereső és szűrősáv + Statisztika -->
+            <div class="p-6 border-b border-slate-100 bg-white grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <!-- Szöveges kereső -->
+                <div class="relative md:col-span-1">
+                    <input type="text" id="modalSearchInput" placeholder="Keresés tétel nevére..."
+                           class="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+
+                <!-- Szűrés fizető szerint -->
+                <div class="md:col-span-1">
+                    <select id="modalFilterPayer" class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700">
+                        <option value="ALL">Minden fizető</option>
+                        <!-- Dinamikusan töltődik a regisztrált felhasználókkal -->
+                    </select>
+                </div>
+
+                <!-- Összesített összeg banner -->
+                <div class="md:col-span-1 bg-indigo-50/60 border border-indigo-100/80 rounded-xl px-4 py-2 flex items-center justify-between">
+                    <span class="text-xs font-semibold text-indigo-700">Szűrt összkiadás:</span>
+                    <span id="modalTotalFilteredAmount" class="text-sm font-bold text-indigo-900">0 Ft</span>
+                </div>
+            </div>
+
+            <!-- Tranzakciós táblázat / lista -->
+            <div class="overflow-y-auto flex-1 divide-y divide-slate-100" id="modalExpensesList">
+                <!-- Dinamikus sorok JS-ből -->
+            </div>
+
+            <!-- Modal Lábléc -->
+            <div class="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex justify-end">
+                <button type="button" id="closeModalFooterBtn" class="px-5 py-2 text-sm font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-all">
+                    Bezárás
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
