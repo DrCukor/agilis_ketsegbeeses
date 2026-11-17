@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 @Service
@@ -37,8 +38,23 @@ public class BudgetService {
         if (amount <= 0) {
             throw new IllegalArgumentException("Az összegnek pozitívnak kell lennie!");
         }
+        if (payer == null || !ALL_USERS.contains(payer)) {
+            throw new IllegalArgumentException("Ismeretlen fizető: " + payer);
+        }
         if (participants == null || participants.isEmpty()) {
             participants = new ArrayList<>(ALL_USERS);
+        } else {
+            // Ismétlődő nevek kiszűrése, a sorrend megtartásával
+            participants = new ArrayList<>(new LinkedHashSet<>(participants));
+            for (String participant : participants) {
+                if (!ALL_USERS.contains(participant)) {
+                    throw new IllegalArgumentException("Ismeretlen résztvevő: " + participant);
+                }
+            }
+            // Ha csak maga a fizető a résztvevő, nem keletkezne tartozás
+            if (participants.size() == 1 && participants.get(0).equals(payer)) {
+                throw new IllegalArgumentException("Legalább egy résztvevőnek a fizetőn kívül kell lennie!");
+            }
         }
 
         Expense expense = new Expense(title, amount, payer, participants);

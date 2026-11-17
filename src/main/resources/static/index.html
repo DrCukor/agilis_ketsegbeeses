@@ -100,14 +100,18 @@
                             </div>
                         </div>
 
-                        <!-- Elosztás opciók (Szimulálva) -->
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between mt-2">
-                            <span class="text-sm text-slate-600 font-medium">Kik között oszlik meg?</span>
-                            <span class="text-sm text-primary font-semibold cursor-pointer hover:underline">Mindenki egyenlően (3 fő)</span>
+                        <!-- Résztvevők kiválasztása (chipek) -->
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 mt-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-slate-600 font-medium">Kik között oszlik meg?</span>
+                                <button type="button" id="selectAllParticipantsBtn" class="text-sm text-primary font-semibold hover:underline">Mindenki</button>
+                            </div>
+                            <div id="participantChips" class="flex flex-wrap gap-2"></div>
+                            <p id="splitSummary" class="text-xs font-medium text-slate-500"></p>
                         </div>
 
                         <!-- Beküldés gomb -->
-                        <button type="button" class="mt-2 w-full bg-primary hover:bg-primaryHover text-white font-medium rounded-xl py-3 shadow-sm transition-all duration-200 flex items-center justify-center gap-2">
+                        <button type="button" id="submitExpenseBtn" class="mt-2 w-full bg-primary hover:bg-primaryHover text-white font-medium rounded-xl py-3 shadow-sm transition-all duration-200 flex items-center justify-center gap-2">
                             Kiadás mentése
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                         </button>
@@ -124,7 +128,7 @@
                     </div>
                     
                     <div class="p-6">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div id="balancesList" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <!-- Tartozás Kártya 1 -->
                             <div class="bg-orange-50 border border-orange-100 rounded-xl p-4 flex items-center gap-4">
                                 <div class="bg-white rounded-full p-2 shadow-sm">
@@ -162,7 +166,7 @@
                     </div>
 
                     <!-- Lista elemek -->
-                    <div class="flex flex-col divide-y divide-slate-100">
+                    <div id="recentExpensesList" class="flex flex-col divide-y divide-slate-100">
                         <!-- Elem 1 -->
                         <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                             <div class="flex items-center gap-4">
@@ -229,7 +233,7 @@
                     </div>
                     
                     <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50">
-                        <button class="text-sm w-full text-center text-primary font-medium hover:text-primaryHover transition-colors">
+                        <button type="button" id="viewAllExpensesBtn" class="text-sm w-full text-center text-primary font-medium hover:text-primaryHover transition-colors">
                             Összes megtekintése &rarr;
                         </button>
                     </div>
@@ -242,6 +246,7 @@
     // Globális állapottárolás
     let allExpensesCache = [];
     const allUsers = ["Ádám", "Dávid", "Levente", "Zoltán"];
+    let selectedParticipants = new Set(allUsers);
 
     // 1. Felhasználói legördülő menük feltöltése
     function initUserDropdowns() {
@@ -257,6 +262,94 @@
             modalPayerFilter.innerHTML = `<option value="ALL">Minden fizető</option>` +
                 allUsers.map(u => `<option value="${u}">${u}</option>`).join('');
         }
+    }
+
+    // Résztvevő-chipek: kik között oszlik meg a kiadás
+    function renderParticipantChips() {
+        const container = document.getElementById("participantChips");
+        if (!container) return;
+
+        container.innerHTML = allUsers.map(u => {
+            const selected = selectedParticipants.has(u);
+            const colors = getAvatarColor(u);
+            const chipClass = selected
+                ? `${colors.bg} ${colors.text} border-transparent`
+                : "bg-white text-slate-400 border-slate-200 hover:border-slate-300";
+            const avatarClass = selected ? "bg-white/70" : "bg-slate-100";
+            return `
+                <button type="button" data-user="${escapeHtml(u)}" aria-pressed="${selected}"
+                        class="${chipClass} border rounded-full pl-1 pr-3 py-1 flex items-center gap-2 text-sm font-semibold transition-colors">
+                    <span class="w-6 h-6 rounded-full ${avatarClass} flex items-center justify-center text-xs font-bold">${escapeHtml(u.charAt(0))}</span>
+                    ${escapeHtml(u)}
+                    ${selected ? '<span aria-hidden="true">✓</span>' : ''}
+                </button>
+            `;
+        }).join('');
+
+        updateSplitSummary();
+    }
+
+    function getSelectedParticipants() {
+        // A sorrend az allUsers sorrendjét követi
+        return allUsers.filter(u => selectedParticipants.has(u));
+    }
+
+    // Hibaüzenet, ha a kiválasztás nem menthető; egyébként null
+    function getParticipantsError() {
+        const participants = getSelectedParticipants();
+        const payer = document.getElementById("payer").value;
+        if (participants.length === 0) {
+            return "Válassz ki legalább egy résztvevőt!";
+        }
+        if (participants.length === 1 && participants[0] === payer) {
+            return "A fizetőn kívül legalább egy résztvevőt válassz ki!";
+        }
+        return null;
+    }
+
+    // Élő előnézet: létszám és egy főre eső összeg
+    function updateSplitSummary() {
+        const summary = document.getElementById("splitSummary");
+        if (!summary) return;
+
+        const error = getParticipantsError();
+        if (error) {
+            summary.textContent = error;
+            summary.className = "text-xs font-medium text-rose-600";
+            return;
+        }
+
+        const count = getSelectedParticipants().length;
+        const label = count === allUsers.length ? `Mindenki egyenlően (${count} fő)` : `${count} fő`;
+        const amount = parseFloat(document.getElementById("amount").value);
+        const shareText = !isNaN(amount) && amount > 0
+            ? ` • ${Math.round(amount / count).toLocaleString()} Ft / fő`
+            : "";
+        summary.textContent = label + shareText;
+        summary.className = "text-xs font-medium text-slate-500";
+    }
+
+    function selectAllParticipants() {
+        selectedParticipants = new Set(allUsers);
+        renderParticipantChips();
+    }
+
+    // Felhasználói adatok biztonságos beillesztése innerHTML-be (XSS ellen)
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    // Részeshatározó rag (-nak/-nek) magánhangzó-harmóniával, pl. Dávidnak, Leventének
+    function toDative(name) {
+        if (name.endsWith("a")) return name.slice(0, -1) + "ának";
+        if (name.endsWith("e")) return name.slice(0, -1) + "ének";
+        const hasBackVowel = /[aáoóuú]/i.test(name);
+        return name + (hasBackVowel ? "nak" : "nek");
     }
 
     // 2. Szín és monogram segédfüggvények
@@ -285,7 +378,7 @@
     }
 
     function renderRecentExpenses(expenses) {
-        const listContainer = document.querySelector(".divide-y");
+        const listContainer = document.getElementById("recentExpensesList");
         if (!listContainer) return;
 
         if (expenses.length === 0) {
@@ -299,11 +392,11 @@
                 <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 rounded-full ${colors.bg} ${colors.text} flex items-center justify-center font-bold text-sm">
-                            ${e.payer.charAt(0)}
+                            ${escapeHtml(e.payer.charAt(0))}
                         </div>
                         <div>
-                            <p class="text-sm font-bold text-slate-800">${e.title}</p>
-                            <p class="text-xs text-slate-500">Fizette: ${e.payer}</p>
+                            <p class="text-sm font-bold text-slate-800">${escapeHtml(e.title)}</p>
+                            <p class="text-xs text-slate-500">Fizette: ${escapeHtml(e.payer)}</p>
                         </div>
                     </div>
                     <div class="text-right">
@@ -315,7 +408,7 @@
     }
 
     function renderBalances(balances) {
-        const balanceContainer = document.querySelector(".grid-cols-1.sm\\:grid-cols-2");
+        const balanceContainer = document.getElementById("balancesList");
         if (!balanceContainer) return;
 
         if (balances.length === 0) {
@@ -330,7 +423,7 @@
             return `
                 <div class="${bgClass} border rounded-xl p-4 flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-slate-600 font-medium">${b.debtor} tartozik <span class="font-bold text-slate-800">${b.creditor}nak</span></p>
+                        <p class="text-sm text-slate-600 font-medium">${escapeHtml(b.debtor)} tartozik <span class="font-bold text-slate-800">${escapeHtml(toDative(b.creditor))}</span></p>
                         <p class="text-lg font-bold ${textClass}">${Math.round(b.amount).toLocaleString()} Ft</p>
                     </div>
                 </div>
@@ -381,19 +474,19 @@
             const colors = getAvatarColor(e.payer);
             const participantsCount = e.participants ? e.participants.length : 4;
             const share = Math.round(e.amount / participantsCount);
-            const participantsList = e.participants ? e.participants.join(', ') : 'Mindenki';
+            const participantsList = e.participants ? escapeHtml(e.participants.join(', ')) : 'Mindenki';
 
             return `
                 <div class="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors">
                     <div class="flex items-start gap-4">
                         <div class="w-11 h-11 rounded-xl ${colors.bg} ${colors.text} flex items-center justify-center font-bold text-base flex-shrink-0 mt-0.5">
-                            ${e.payer.charAt(0)}
+                            ${escapeHtml(e.payer.charAt(0))}
                         </div>
                         <div>
-                            <h4 class="text-base font-bold text-slate-800 leading-tight">${e.title}</h4>
+                            <h4 class="text-base font-bold text-slate-800 leading-tight">${escapeHtml(e.title)}</h4>
                             <div class="flex flex-wrap items-center gap-2 mt-1.5">
                                 <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 font-semibold text-slate-600">
-                                    Fizette: <strong class="text-slate-800">${e.payer}</strong>
+                                    Fizette: <strong class="text-slate-800">${escapeHtml(e.payer)}</strong>
                                 </span>
                                 <span class="text-xs text-slate-400">•</span>
                                 <span class="text-xs text-slate-500">
@@ -423,11 +516,17 @@
             return;
         }
 
+        const participantsError = getParticipantsError();
+        if (participantsError) {
+            alert(participantsError);
+            return;
+        }
+
         const payload = {
             title: title,
             amount: amount,
             payer: payer,
-            participants: allUsers
+            participants: getSelectedParticipants()
         };
 
         const res = await fetch('/api/expenses', {
@@ -439,6 +538,7 @@
         if (res.ok) {
             document.getElementById("title").value = "";
             document.getElementById("amount").value = "";
+            selectAllParticipants();
             await loadData();
         } else {
             const err = await res.text();
@@ -449,14 +549,33 @@
     // Eseményfigyelők inicializálása
     document.addEventListener("DOMContentLoaded", () => {
         initUserDropdowns();
+        renderParticipantChips();
         loadData();
 
+        // Résztvevő-chipek ki/bekapcsolása
+        document.getElementById("participantChips").addEventListener("click", (e) => {
+            const chip = e.target.closest("button[data-user]");
+            if (!chip) return;
+            const user = chip.dataset.user;
+            if (selectedParticipants.has(user)) {
+                selectedParticipants.delete(user);
+            } else {
+                selectedParticipants.add(user);
+            }
+            renderParticipantChips();
+        });
+        document.getElementById("selectAllParticipantsBtn").addEventListener("click", selectAllParticipants);
+
+        // Előnézet frissítése összeg vagy fizető változásakor
+        document.getElementById("amount").addEventListener("input", updateSplitSummary);
+        document.getElementById("payer").addEventListener("change", updateSplitSummary);
+
         // Mentés gomb bekötése
-        const submitBtn = document.querySelector("button[type='button']");
+        const submitBtn = document.getElementById("submitExpenseBtn");
         if (submitBtn) submitBtn.addEventListener("click", submitExpense);
 
         // "Összes megtekintése" gomb eseménykezelője a jobb oldali kártya alján
-        const viewAllBtn = document.querySelector(".divide-y").parentElement.querySelector("button");
+        const viewAllBtn = document.getElementById("viewAllExpensesBtn");
         if (viewAllBtn) {
             viewAllBtn.addEventListener("click", openAllExpensesModal);
         }
