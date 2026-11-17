@@ -13,7 +13,8 @@ import java.util.Map;
 @Service
 public class DebtService {
 
-    private static final double EPSILON = 0.01;
+    // Fél forint alatti maradékot rendezettnek tekintünk (forintban nincs kisebb egység)
+    private static final double EPSILON = 0.5;
 
     public List<Debt> calculateDebts(Expense expense) {
         List<Debt> debts = new ArrayList<>();
@@ -72,8 +73,10 @@ public class DebtService {
 
             double settledAmount = Math.min(debtor.amount, creditor.amount);
 
+            // Pontos (nem kerekített) összeg, hogy a kiegyenlítés maradék nélkül nullázzon;
+            // a kerekítés csak a megjelenítéskor történik
             if (settledAmount > EPSILON) {
-                simplifiedDebts.add(new Debt(debtor.name, creditor.name, Math.round(settledAmount)));
+                simplifiedDebts.add(new Debt(debtor.name, creditor.name, settledAmount));
             }
 
             debtor.amount -= settledAmount;
