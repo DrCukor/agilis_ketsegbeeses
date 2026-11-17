@@ -45,10 +45,11 @@
                 <h1 class="text-xl font-bold text-slate-900 tracking-tight">KözösKassza</h1>
             </div>
             <div class="flex items-center gap-4">
-                <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-primary font-bold">
-                    Z
-                </div>
-                <span class="hidden sm:inline-block font-medium text-sm text-slate-600">Zoli</span>
+                <div id="currentUserAvatar" class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-primary font-bold"></div>
+                <span id="currentUserName" class="hidden sm:inline-block font-medium text-sm text-slate-600"></span>
+                <button type="button" id="logoutBtn" class="text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg px-3 py-1.5 transition-colors">
+                    Kijelentkezés
+                </button>
             </div>
         </div>
     </header>
@@ -245,15 +246,51 @@
 <script>
     // Globális állapottárolás
     let allExpensesCache = [];
-    const allUsers = ["Ádám", "Dávid", "Levente", "Zoltán"];
-    let selectedParticipants = new Set(allUsers);
+    // A kiadásokban szereplő felhasználók nevei, a /api/users végpontról töltjük be
+    let allUsers = [];
+    let selectedParticipants = new Set();
+    let currentUser = null;
+
+    async function loadUsers() {
+        const res = await fetch('/api/users');
+        if (res.status === 401) {
+            redirectToLogin();
+            return false;
+        }
+        allUsers = await res.json();
+        selectedParticipants = new Set(allUsers);
+        return true;
+    }
+
+    // 0. Bejelentkezett felhasználó betöltése; ha nincs belépve, a login oldalra irányítunk
+    function redirectToLogin() {
+        window.location.href = "/login.html";
+    }
+
+    async function loadCurrentUser() {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) {
+            redirectToLogin();
+            return false;
+        }
+        currentUser = await res.json();
+        document.getElementById("currentUserAvatar").textContent = currentUser.name.charAt(0).toUpperCase();
+        document.getElementById("currentUserName").textContent = currentUser.name;
+        return true;
+    }
+
+    async function logout() {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        redirectToLogin();
+    }
 
     // 1. Felhasználói legördülő menük feltöltése
     function initUserDropdowns() {
         const payerSelect = document.getElementById("payer");
         if (payerSelect) {
             payerSelect.innerHTML = allUsers.map(u => `<option value="${u}">${u}</option>`).join('');
-            payerSelect.value = "Zoltán";
+            // Alapértelmezett fizető a bejelentkezett felhasználó, ha szerepel a listában
+            payerSelect.value = currentUser && allUsers.includes(currentUser.name) ? currentUser.name : allUsers[0];
         }
 
         // Modal szűrőjének feltöltése a regisztrált személyekkel
@@ -353,23 +390,39 @@
     }
 
     // 2. Szín és monogram segédfüggvények
-    function getAvatarColor(payer) {
-        if (payer === "Dávid") return { bg: "bg-rose-100", text: "text-rose-600" };
-        if (payer === "Levente") return { bg: "bg-emerald-100", text: "text-emerald-600" };
-        if (payer === "Ádám") return { bg: "bg-amber-100", text: "text-amber-600" };
-        return { bg: "bg-indigo-100", text: "text-indigo-600" };
+    const AVATAR_COLORS = [
+        { bg: "bg-amber-100", text: "text-amber-600" },
+        { bg: "bg-rose-100", text: "text-rose-600" },
+        { bg: "bg-emerald-100", text: "text-emerald-600" },
+        { bg: "bg-indigo-100", text: "text-indigo-600" },
+        { bg: "bg-sky-100", text: "text-sky-600" },
+        { bg: "bg-violet-100", text: "text-violet-600" },
+        { bg: "bg-teal-100", text: "text-teal-600" },
+        { bg: "bg-orange-100", text: "text-orange-600" }
+    ];
+
+    // Szín a felhasználó listabeli helye alapján, így a csapattagok színe biztosan eltér;
+    // ismeretlen névnél a név karaktereiből számolt szín
+    function getAvatarColor(name) {
+        let index = allUsers.indexOf(name);
+        if (index < 0) {
+            index = [...String(name)].reduce((sum, ch) => sum + ch.codePointAt(0), 0);
+        }
+        return AVATAR_COLORS[index % AVATAR_COLORS.length];
     }
 
     // 3. Főoldali kiadások és egyenlegek lekérése
     async function loadData() {
         try {
             const expRes = await fetch('/api/expenses');
+            if (expRes.status === 401) return redirectToLogin();
             allExpensesCache = await expRes.json();
 
             // Főoldalon csak a legutóbbi 5 kiadást mutatjuk
             renderRecentExpenses(allExpensesCache.slice(0, 5));
 
             const balRes = await fetch('/api/balances');
+            if (balRes.status === 401) return redirectToLogin();
             const balances = await balRes.json();
             renderBalances(balances);
         } catch (err) {
@@ -417,7 +470,7 @@
         }
 
         balanceContainer.innerHTML = balances.map(b => {
-            const isMe = b.creditor === "Zoltán";
+            const isMe = currentUser && b.creditor === currentUser.name;
             const bgClass = isMe ? "bg-green-50 border-green-100" : "bg-orange-50 border-orange-100";
             const textClass = isMe ? "text-green-700" : "text-orange-600";
             return `
@@ -472,7 +525,7 @@
 
         container.innerHTML = filtered.map(e => {
             const colors = getAvatarColor(e.payer);
-            const participantsCount = e.participants ? e.participants.length : 4;
+            const participantsCount = e.participants && e.participants.length ? e.participants.length : allUsers.length;
             const share = Math.round(e.amount / participantsCount);
             const participantsList = e.participants ? escapeHtml(e.participants.join(', ')) : 'Mindenki';
 
@@ -535,7 +588,9 @@
             body: JSON.stringify(payload)
         });
 
-        if (res.ok) {
+        if (res.status === 401) {
+            redirectToLogin();
+        } else if (res.ok) {
             document.getElementById("title").value = "";
             document.getElementById("amount").value = "";
             selectAllParticipants();
@@ -547,10 +602,15 @@
     }
 
     // Eseményfigyelők inicializálása
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
+        if (!(await loadCurrentUser())) return;
+        if (!(await loadUsers())) return;
+
         initUserDropdowns();
         renderParticipantChips();
         loadData();
+
+        document.getElementById("logoutBtn").addEventListener("click", logout);
 
         // Résztvevő-chipek ki/bekapcsolása
         document.getElementById("participantChips").addEventListener("click", (e) => {

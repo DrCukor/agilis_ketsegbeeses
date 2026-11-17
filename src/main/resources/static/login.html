@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KözösKassza - Bejelentkezés</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#4f46e5', // Indigo 600
+                        primaryHover: '#4338ca', // Indigo 700
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+        input.input-error {
+            border-color: #e11d48;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md">
+        <!-- Logó -->
+        <div class="flex items-center justify-center gap-2 mb-8">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">KözösKassza</h1>
+        </div>
+
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <!-- Fülek: Bejelentkezés / Regisztráció -->
+            <div class="grid grid-cols-2 border-b border-slate-100 bg-slate-50/50" role="tablist">
+                <button type="button" id="loginTab" role="tab" class="py-4 text-sm font-semibold transition-colors">Bejelentkezés</button>
+                <button type="button" id="registerTab" role="tab" class="py-4 text-sm font-semibold transition-colors">Regisztráció</button>
+            </div>
+
+            <div class="p-6">
+                <!-- Hibaüzenet doboz -->
+                <div id="formError" class="hidden mb-5 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700"></div>
+
+                <!-- Bejelentkezés űrlap -->
+                <form id="loginForm" class="flex flex-col gap-5" novalidate>
+                    <div class="flex flex-col gap-1.5">
+                        <label for="loginEmail" class="text-sm font-medium text-slate-700">Email cím</label>
+                        <input type="email" id="loginEmail" autocomplete="email" placeholder="pl. kisspista12@gmail.com" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all duration-200">
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label for="loginPassword" class="text-sm font-medium text-slate-700">Jelszó</label>
+                        <input type="password" id="loginPassword" autocomplete="current-password" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all duration-200">
+                    </div>
+                    <button type="submit" class="mt-2 w-full bg-primary hover:bg-primaryHover text-white font-medium rounded-xl py-3 shadow-sm transition-all duration-200">
+                        Bejelentkezés
+                    </button>
+                    <p class="text-center text-sm text-slate-500">
+                        Még nincs fiókod?
+                        <button type="button" data-switch="register" class="text-primary font-semibold hover:underline">Regisztrálj!</button>
+                    </p>
+                </form>
+
+                <!-- Regisztráció űrlap -->
+                <form id="registerForm" class="hidden flex-col gap-5" novalidate>
+                    <div class="flex flex-col gap-1.5">
+                        <label for="registerName" class="text-sm font-medium text-slate-700">Név</label>
+                        <input type="text" id="registerName" autocomplete="name" placeholder="pl. Kiss Pista" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all duration-200">
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label for="registerEmail" class="text-sm font-medium text-slate-700">Email cím</label>
+                        <input type="email" id="registerEmail" autocomplete="email" placeholder="pl. kisspista12@gmail.com" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all duration-200">
+                        <p id="registerEmailHint" class="hidden text-xs font-medium text-rose-600">Érvénytelen email cím! Helyes formátum: nev@domain.hu</p>
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label for="registerPassword" class="text-sm font-medium text-slate-700">Jelszó</label>
+                        <input type="password" id="registerPassword" autocomplete="new-password" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all duration-200">
+                    </div>
+                    <button type="submit" class="mt-2 w-full bg-primary hover:bg-primaryHover text-white font-medium rounded-xl py-3 shadow-sm transition-all duration-200">
+                        Regisztráció
+                    </button>
+                    <p class="text-center text-sm text-slate-500">
+                        Van már fiókod?
+                        <button type="button" data-switch="login" class="text-primary font-semibold hover:underline">Jelentkezz be!</button>
+                    </p>
+                </form>
+            </div>
+        </section>
+    </div>
+
+<script>
+    // Ugyanaz a szabály, mint a backendben (AuthService.EMAIL_PATTERN), ékezetes betűkkel együtt
+    const EMAIL_PATTERN = /^[\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(\.[\p{L}\p{N}-]+)*\.\p{L}{2,}$/u;
+
+    function isValidEmail(email) {
+        return EMAIL_PATTERN.test(email);
+    }
+
+    function showError(message) {
+        const box = document.getElementById("formError");
+        box.textContent = message;
+        box.classList.remove("hidden");
+    }
+
+    function clearError() {
+        document.getElementById("formError").classList.add("hidden");
+    }
+
+    // Fülváltás a két űrlap között
+    function switchTab(tab) {
+        const isLogin = tab === "login";
+        const activeClass = ["text-primary", "bg-white", "border-b-2", "border-primary"];
+        const inactiveClass = ["text-slate-500", "hover:text-slate-700"];
+
+        const loginTab = document.getElementById("loginTab");
+        const registerTab = document.getElementById("registerTab");
+        loginTab.classList.remove(...activeClass, ...inactiveClass);
+        registerTab.classList.remove(...activeClass, ...inactiveClass);
+        loginTab.classList.add(...(isLogin ? activeClass : inactiveClass));
+        registerTab.classList.add(...(isLogin ? inactiveClass : activeClass));
+        loginTab.setAttribute("aria-selected", isLogin);
+        registerTab.setAttribute("aria-selected", !isLogin);
+
+        document.getElementById("loginForm").classList.toggle("hidden", !isLogin);
+        document.getElementById("loginForm").classList.toggle("flex", isLogin);
+        document.getElementById("registerForm").classList.toggle("hidden", isLogin);
+        document.getElementById("registerForm").classList.toggle("flex", !isLogin);
+
+        clearError();
+        document.getElementById(isLogin ? "loginEmail" : "registerName").focus();
+    }
+
+    // Email mező ellenőrzése a regisztrációnál, piros kerettel és üzenettel
+    function validateRegisterEmail() {
+        const input = document.getElementById("registerEmail");
+        const valid = isValidEmail(input.value.trim());
+        input.classList.toggle("input-error", !valid);
+        document.getElementById("registerEmailHint").classList.toggle("hidden", valid);
+        return valid;
+    }
+
+    async function postJson(url, body) {
+        return fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+    }
+
+    async function handleLogin(event) {
+        event.preventDefault();
+        clearError();
+
+        const email = document.getElementById("loginEmail").value.trim();
+        const password = document.getElementById("loginPassword").value;
+        if (!email || !password) {
+            showError("Add meg az email címet és a jelszót!");
+            return;
+        }
+
+        const res = await postJson("/api/auth/login", { email, password });
+        if (res.ok) {
+            window.location.href = "/";
+        } else {
+            showError(await res.text());
+        }
+    }
+
+    async function handleRegister(event) {
+        event.preventDefault();
+        clearError();
+
+        const name = document.getElementById("registerName").value.trim();
+        const email = document.getElementById("registerEmail").value.trim();
+        const password = document.getElementById("registerPassword").value;
+
+        if (!name) {
+            showError("Add meg a neved!");
+            return;
+        }
+        if (!validateRegisterEmail()) {
+            showError("Érvénytelen email cím!");
+            return;
+        }
+        if (!password) {
+            showError("Add meg a jelszót!");
+            return;
+        }
+
+        const res = await postJson("/api/auth/register", { name, email, password });
+        if (res.ok) {
+            window.location.href = "/";
+        } else {
+            showError(await res.text());
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        // Ha már be van jelentkezve, egyből a főoldalra visszük
+        const me = await fetch("/api/auth/me");
+        if (me.ok) {
+            window.location.href = "/";
+            return;
+        }
+
+        switchTab(location.hash === "#regisztracio" ? "register" : "login");
+
+        document.getElementById("loginTab").addEventListener("click", () => switchTab("login"));
+        document.getElementById("registerTab").addEventListener("click", () => switchTab("register"));
+        document.querySelectorAll("[data-switch]").forEach(btn =>
+            btn.addEventListener("click", () => switchTab(btn.dataset.switch)));
+
+        document.getElementById("loginForm").addEventListener("submit", handleLogin);
+        document.getElementById("registerForm").addEventListener("submit", handleRegister);
+
+        // Az email hibajelzés kilépéskor jelenik meg, javításkor azonnal eltűnik
+        const registerEmail = document.getElementById("registerEmail");
+        registerEmail.addEventListener("blur", () => {
+            if (registerEmail.value.trim()) validateRegisterEmail();
+        });
+        registerEmail.addEventListener("input", () => {
+            if (registerEmail.classList.contains("input-error")) validateRegisterEmail();
+        });
+    });
+</script>
+</body>
+</html>
