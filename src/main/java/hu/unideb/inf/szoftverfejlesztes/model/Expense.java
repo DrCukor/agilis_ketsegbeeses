@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,11 +34,15 @@ public class Expense {
     @Column(name = "person")
     private List<String> participants = new ArrayList<>();
 
+    // Rögzítés időpontja (szerkesztéskor nem változik); régi tételeknél üres lehet
+    private LocalDateTime createdAt;
+
     public Expense(String title, double amount, String payer, List<String> participants) {
         this.title = title;
         this.amount = amount;
         this.payer = payer;
         this.participants = participants;
+        this.createdAt = LocalDateTime.now();
     }
 
     public double getSharePerPerson() {
