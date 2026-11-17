@@ -2,32 +2,43 @@ package hu.unideb.inf.szoftverfejlesztes.services;
 
 import hu.unideb.inf.szoftverfejlesztes.model.Debt;
 import hu.unideb.inf.szoftverfejlesztes.model.Expense;
+import hu.unideb.inf.szoftverfejlesztes.model.User;
 import hu.unideb.inf.szoftverfejlesztes.repository.DebtRepository;
 import hu.unideb.inf.szoftverfejlesztes.repository.ExpenseRepository;
+import hu.unideb.inf.szoftverfejlesztes.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Collator;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class BudgetService {
 
-    public static final List<String> ALL_USERS = List.of("Ádám", "Dávid", "Levente", "Zoltán");
-
     private final ExpenseRepository expenseRepository;
     private final DebtRepository debtRepository;
+    private final UserRepository userRepository;
     private final DebtService debtService;
 
-    public BudgetService(ExpenseRepository expenseRepository, DebtRepository debtRepository, DebtService debtService) {
+    public BudgetService(ExpenseRepository expenseRepository, DebtRepository debtRepository,
+                         UserRepository userRepository, DebtService debtService) {
         this.expenseRepository = expenseRepository;
         this.debtRepository = debtRepository;
+        this.userRepository = userRepository;
         this.debtService = debtService;
     }
 
+    // A kiadásokban szereplő személyek: minden regisztrált felhasználó az admin kivételével,
+    // magyar ábécérendben (Ádám, Dávid, Levi, Zoli)
     public List<String> getAllUsers() {
-        return ALL_USERS;
+        Collator hungarian = Collator.getInstance(Locale.forLanguageTag("hu-HU"));
+        return userRepository.findAllByAdminFalse().stream()
+                .map(User::getName)
+                .sorted(hungarian)
+                .toList();
     }
 
     @Transactional
@@ -38,16 +49,18 @@ public class BudgetService {
         if (amount <= 0) {
             throw new IllegalArgumentException("Az összegnek pozitívnak kell lennie!");
         }
-        if (payer == null || !ALL_USERS.contains(payer)) {
+
+        List<String> allUsers = getAllUsers();
+        if (payer == null || !allUsers.contains(payer)) {
             throw new IllegalArgumentException("Ismeretlen fizető: " + payer);
         }
         if (participants == null || participants.isEmpty()) {
-            participants = new ArrayList<>(ALL_USERS);
+            participants = new ArrayList<>(allUsers);
         } else {
             // Ismétlődő nevek kiszűrése, a sorrend megtartásával
             participants = new ArrayList<>(new LinkedHashSet<>(participants));
             for (String participant : participants) {
-                if (!ALL_USERS.contains(participant)) {
+                if (!allUsers.contains(participant)) {
                     throw new IllegalArgumentException("Ismeretlen résztvevő: " + participant);
                 }
             }
