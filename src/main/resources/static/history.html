@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="hu" class="auth-pending">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KözösKassza - Rendezések</title>
+    <!-- Téma (világos/sötét) beállítása a kirajzolás előtt -->
+    <script src="theme.js"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#4f46e5', // Indigo 600
+                        primaryHover: '#4338ca', // Indigo 700
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="theme.css">
+    <!-- Közös segédfüggvények -->
+    <script src="common.js"></script>
+    <style>
+        select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-6 min-w-0">
+                <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    <h1 class="hidden sm:block text-xl font-bold text-slate-900 tracking-tight">KözösKassza</h1>
+                </div>
+                <!-- Navigáció -->
+                <nav class="flex items-center gap-1 text-sm font-medium">
+                    <a href="/" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">Kiadások</a>
+                    <a href="/history.html" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800" aria-current="page">Rendezések</a>
+                    <a href="/stats.html" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">Statisztika</a>
+                </nav>
+            </div>
+            <div class="flex items-center gap-3 sm:gap-4">
+                <!-- Munkamenet visszaszámláló -->
+                <span class="hidden md:flex items-center gap-1 text-xs font-medium text-slate-500" title="Automatikus kijelentkeztetésig hátralévő idő">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span id="sessionCountdown"></span>
+                </span>
+                <!-- Sötét mód kapcsoló (csúszka) -->
+                <button type="button" class="theme-switch" data-theme-toggle role="switch" aria-checked="false" aria-label="Sötét mód" title="Sötét mód">
+                    <span class="theme-switch-knob">
+                        <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                        <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    </span>
+                </button>
+                <div id="currentUserAvatar" class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-primary font-bold"></div>
+                <span id="currentUserName" class="hidden sm:inline-block font-medium text-sm text-slate-600"></span>
+                <button type="button" id="logoutBtn" class="text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg px-3 py-1.5 transition-colors">
+                    Kijelentkezés
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col gap-8">
+
+        <div>
+            <h2 class="text-2xl font-bold text-slate-900">Rendezések</h2>
+            <p class="text-sm text-slate-500 mt-1">A korábbi tartozás-megadások: ki, kinek, mennyit és mikor adott meg.</p>
+        </div>
+
+        <!-- Összesítő kártyák -->
+        <div id="summaryTiles" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <!-- Szűrők -->
+            <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <select id="filterPerson" aria-label="Szűrés személy szerint" class="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-700"></select>
+                    <select id="filterCurrency" aria-label="Szűrés pénznem szerint" class="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-700"></select>
+                </div>
+                <p id="resultCount" class="text-xs text-slate-500"></p>
+            </div>
+
+            <!-- Rendezések listája (JS tölti fel) -->
+            <div id="settlementList" class="divide-y divide-slate-100"></div>
+        </section>
+    </main>
+
+<script>
+    let currentUser = null;
+    let allUsers = [];
+    let allSettlements = [];
+
+    function avatar(name) {
+        const colors = getAvatarColor(name, allUsers);
+        return `<span class="w-9 h-9 flex-shrink-0 rounded-full ${colors.bg} ${colors.text} flex items-center justify-center font-bold text-sm" title="${escapeHtml(name)}">${escapeHtml(name.charAt(0))}</span>`;
+    }
+
+    // Pénznemenkénti összeg egy rendezés-listából
+    function sumByCurrency(settlements) {
+        const totals = {};
+        settlements.forEach(s => { totals[s.currency] = (totals[s.currency] || 0) + s.amount; });
+        return totals;
+    }
+
+    function renderSummary() {
+        const me = currentUser.name;
+        const tiles = [
+            { label: "Összesen rendezve", value: allSettlements.length ? formatMoneyMap(sumByCurrency(allSettlements)) : "–" },
+            { label: "Rendezések száma", value: `${allSettlements.length} db` }
+        ];
+        // Az adminnak nincsenek saját tartozásai, neki nem mutatjuk a személyes kártyákat
+        if (allUsers.includes(me)) {
+            const paid = allSettlements.filter(s => s.debtor === me);
+            const received = allSettlements.filter(s => s.creditor === me);
+            tiles.push({ label: "Te megadtál", value: paid.length ? formatMoneyMap(sumByCurrency(paid)) : "–", tone: "text-orange-600" });
+            tiles.push({ label: "Neked megadták", value: received.length ? formatMoneyMap(sumByCurrency(received)) : "–", tone: "text-green-700" });
+        }
+
+        document.getElementById("summaryTiles").innerHTML = tiles.map(t => `
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">${t.label}</p>
+                <p class="text-lg font-bold ${t.tone || "text-slate-900"} mt-1">${escapeHtml(t.value)}</p>
+            </div>
+        `).join('');
+    }
+
+    function initFilters() {
+        const people = [...new Set([...allUsers, ...allSettlements.flatMap(s => [s.debtor, s.creditor])])];
+        document.getElementById("filterPerson").innerHTML = `<option value="ALL">Mindenki</option>` +
+            people.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+
+        const used = new Set(allSettlements.map(s => s.currency));
+        document.getElementById("filterCurrency").innerHTML = `<option value="ALL">Minden pénznem</option>` +
+            Object.keys(CURRENCIES).filter(c => used.has(c))
+                .map(c => `<option value="${c}">${c} (${CURRENCIES[c].symbol})</option>`).join('');
+    }
+
+    function renderList() {
+        const person = document.getElementById("filterPerson").value;
+        const currency = document.getElementById("filterCurrency").value;
+        const me = currentUser.name;
+
+        const filtered = allSettlements.filter(s =>
+            (person === "ALL" || s.debtor === person || s.creditor === person) &&
+            (currency === "ALL" || s.currency === currency));
+
+        document.getElementById("resultCount").textContent = `${filtered.length} rendezés (összesen: ${allSettlements.length})`;
+
+        const list = document.getElementById("settlementList");
+        if (filtered.length === 0) {
+            list.innerHTML = `<div class="py-12 text-center text-slate-400 text-sm">${allSettlements.length
+                ? "Nincs a szűrésnek megfelelő rendezés."
+                : "Még nem volt tartozás-rendezés. A főoldalon a hitelező a „Megkaptam” gombbal jelölheti."}</div>`;
+            return;
+        }
+
+        list.innerHTML = filtered.map(s => {
+            let sentence;
+            let amountTone = "text-slate-900";
+            if (s.debtor === me) {
+                sentence = `Te megadtad a tartozásodat <strong class="text-slate-800">${escapeHtml(toDative(s.creditor))}</strong>`;
+                amountTone = "text-orange-600";
+            } else if (s.creditor === me) {
+                sentence = `<strong class="text-slate-800">${escapeHtml(s.debtor)}</strong> megadta a tartozását neked`;
+                amountTone = "text-green-700";
+            } else {
+                sentence = `<strong class="text-slate-800">${escapeHtml(s.debtor)}</strong> megadta a tartozását <strong class="text-slate-800">${escapeHtml(toDative(s.creditor))}</strong>`;
+            }
+            const date = formatDate(s.createdAt);
+            const meta = [date, s.settledBy ? `Jelölte: ${s.settledBy}` : ""].filter(Boolean).map(escapeHtml).join(" • ");
+
+            return `
+                <div class="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            ${avatar(s.debtor)}
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                            ${avatar(s.creditor)}
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm text-slate-600">${sentence}</p>
+                            <p class="text-xs text-slate-500 mt-0.5">${meta}</p>
+                        </div>
+                    </div>
+                    <p class="text-base font-bold ${amountTone} whitespace-nowrap">${formatMoney(s.amount, s.currency)}</p>
+                </div>
+            `;
+        }).join('');
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        currentUser = await loadCurrentUser();
+        if (!currentUser) return;
+
+        try {
+            const [usersRes, settlementsRes] = await Promise.all([apiFetch('/api/users'), apiFetch('/api/settlements')]);
+            allUsers = await usersRes.json();
+            allSettlements = await settlementsRes.json();
+        } catch (err) {
+            showToast("Nem sikerült betölteni az adatokat.", "error");
+            return;
+        }
+
+        renderSummary();
+        initFilters();
+        renderList();
+        document.getElementById("filterPerson").addEventListener("change", renderList);
+        document.getElementById("filterCurrency").addEventListener("change", renderList);
+    });
+</script>
+</body>
+</html>
