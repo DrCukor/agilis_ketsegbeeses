@@ -1,20 +1,19 @@
 package hu.unideb.inf.szoftverfejlesztes.services;
 
+import hu.unideb.inf.szoftverfejlesztes.model.Currency;
 import hu.unideb.inf.szoftverfejlesztes.model.Debt;
 import hu.unideb.inf.szoftverfejlesztes.model.Expense;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Service
 public class DebtService {
-
-    // Fél forint alatti maradékot rendezettnek tekintünk (forintban nincs kisebb egység)
-    private static final double EPSILON = 0.5;
 
     public List<Debt> calculateDebts(Expense expense) {
         List<Debt> debts = new ArrayList<>();
@@ -30,12 +29,26 @@ public class DebtService {
             if (participant.equals(payer)) {
                 continue;
             }
-            debts.add(new Debt(expense, participant, payer, share));
+            debts.add(new Debt(expense, participant, payer, share, expense.getCurrency()));
         }
         return debts;
     }
 
+    // Pénznemenként külön egyszerűsít: a forintos és az eurós tartozások nem nettósítják egymást
     public List<Debt> simplifyDebts(List<Debt> rawDebts) {
+        Map<Currency, List<Debt>> debtsByCurrency = new EnumMap<>(Currency.class);
+        for (Debt debt : rawDebts) {
+            debtsByCurrency.computeIfAbsent(debt.getCurrency(), c -> new ArrayList<>()).add(debt);
+        }
+
+        List<Debt> simplifiedDebts = new ArrayList<>();
+        debtsByCurrency.forEach((currency, debts) -> simplifiedDebts.addAll(simplifyInCurrency(debts, currency)));
+        return simplifiedDebts;
+    }
+
+    private List<Debt> simplifyInCurrency(List<Debt> rawDebts, Currency currency) {
+        // Az ennél kisebb maradékot rendezettnek tekintjük (pl. fél forint, fél cent)
+        double epsilon = currency.getEpsilon();
         Map<String, Double> netBalances = new HashMap<>();
 
         // 1. Nettó egyenlegek összesítése személyenként
@@ -49,10 +62,10 @@ public class DebtService {
         List<PersonBalance> creditors = new ArrayList<>();
 
         for (Map.Entry<String, Double> entry : netBalances.entrySet()) {
-            if (entry.getValue() < -EPSILON) {
+            if (entry.getValue() < -epsilon) {
                 // Tartozás pozitív összegként rögzítve
                 debtors.add(new PersonBalance(entry.getKey(), -entry.getValue()));
-            } else if (entry.getValue() > EPSILON) {
+            } else if (entry.getValue() > epsilon) {
                 // Követelés pozitív összegként rögzítve
                 creditors.add(new PersonBalance(entry.getKey(), entry.getValue()));
             }
@@ -75,17 +88,17 @@ public class DebtService {
 
             // Pontos (nem kerekített) összeg, hogy a kiegyenlítés maradék nélkül nullázzon;
             // a kerekítés csak a megjelenítéskor történik
-            if (settledAmount > EPSILON) {
-                simplifiedDebts.add(new Debt(debtor.name, creditor.name, settledAmount));
+            if (settledAmount > epsilon) {
+                simplifiedDebts.add(new Debt(debtor.name, creditor.name, settledAmount, currency));
             }
 
             debtor.amount -= settledAmount;
             creditor.amount -= settledAmount;
 
-            if (debtor.amount <= EPSILON) {
+            if (debtor.amount <= epsilon) {
                 dIdx++;
             }
-            if (creditor.amount <= EPSILON) {
+            if (creditor.amount <= epsilon) {
                 cIdx++;
             }
         }

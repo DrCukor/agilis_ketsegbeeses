@@ -4,6 +4,22 @@
  * tartalomra is automatikusan érvényes, nem kell minden elemre dark: változat.
  */
 
+/* ---------- Közös oldalstílusok ---------- */
+
+/* Amíg nem derül ki, hogy be van-e jelentkezve, nem mutatjuk az oldalt (ne villanjon fel) */
+html.auth-pending body {
+    visibility: hidden;
+}
+
+/* Toast értesítések be- és kiúszása */
+.toast {
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.toast.toast-hidden {
+    opacity: 0;
+    transform: translateY(0.5rem);
+}
+
 /* ---------- Téma kapcsoló (csúszka) ---------- */
 .theme-switch {
     position: relative;

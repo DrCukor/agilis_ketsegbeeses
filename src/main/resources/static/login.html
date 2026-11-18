@@ -66,6 +66,11 @@
             </div>
 
             <div class="p-6">
+                <!-- Tájékoztatás lejárt munkamenetről (?lejart=1) -->
+                <div id="sessionExpiredInfo" class="hidden mb-5 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-700">
+                    Lejárt a munkamenet (15 perc a belépéstől), jelentkezz be újra!
+                </div>
+
                 <!-- Hibaüzenet doboz -->
                 <div id="formError" class="hidden mb-5 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700"></div>
 
@@ -231,6 +236,10 @@
         }
 
         switchTab(location.hash === "#regisztracio" ? "register" : "login");
+
+        if (new URLSearchParams(location.search).has("lejart")) {
+            document.getElementById("sessionExpiredInfo").classList.remove("hidden");
+        }
 
         document.getElementById("loginTab").addEventListener("click", () => switchTab("login"));
         document.getElementById("registerTab").addEventListener("click", () => switchTab("register"));

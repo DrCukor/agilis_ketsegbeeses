@@ -28,13 +28,23 @@ public class Settlement {
     @Column(nullable = false)
     private double amount;
 
+    // Régi (oszlop előtti) soroknál üres, ezek forintot jelentenek
+    @Convert(converter = Currency.JpaConverter.class)
+    @Column(length = 10)
+    private Currency currency;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    public Settlement(String debtor, String creditor, double amount) {
+    public Settlement(String debtor, String creditor, double amount, Currency currency) {
         this.debtor = debtor;
         this.creditor = creditor;
         this.amount = amount;
+        this.currency = currency;
         this.createdAt = LocalDateTime.now();
+    }
+
+    public Currency getCurrency() {
+        return currency == null ? Currency.HUF : currency;
     }
 }

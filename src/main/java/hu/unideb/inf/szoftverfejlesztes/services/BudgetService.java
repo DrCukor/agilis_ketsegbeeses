@@ -1,5 +1,7 @@
 package hu.unideb.inf.szoftverfejlesztes.services;
 
+import hu.unideb.inf.szoftverfejlesztes.model.Category;
+import hu.unideb.inf.szoftverfejlesztes.model.Currency;
 import hu.unideb.inf.szoftverfejlesztes.model.Debt;
 import hu.unideb.inf.szoftverfejlesztes.model.Expense;
 import hu.unideb.inf.szoftverfejlesztes.model.Settlement;
@@ -48,10 +50,11 @@ public class BudgetService {
     }
 
     @Transactional
-    public Expense createExpense(String title, double amount, String payer, List<String> participants) {
-        List<String> validParticipants = validateExpense(title, amount, payer, participants);
+    public Expense createExpense(User currentUser, ExpenseInput input) {
+        ValidExpense valid = validateExpense(currentUser, input);
 
-        Expense expense = new Expense(title.trim(), amount, payer, validParticipants);
+        Expense expense = new Expense(valid.title(), valid.amount(), valid.currency(), valid.category(),
+                valid.payer(), valid.participants(), currentUser.getName());
         Expense savedExpense = expenseRepository.save(expense);
 
         debtRepository.saveAll(debtService.calculateDebts(savedExpense));
@@ -59,14 +62,17 @@ public class BudgetService {
     }
 
     @Transactional
-    public Expense updateExpense(Long id, String title, double amount, String payer, List<String> participants) {
+    public Expense updateExpense(User currentUser, Long id, ExpenseInput input) {
         Expense expense = findExpense(id);
-        List<String> validParticipants = validateExpense(title, amount, payer, participants);
+        checkCanModify(currentUser, expense);
+        ValidExpense valid = validateExpense(currentUser, input);
 
-        expense.setTitle(title.trim());
-        expense.setAmount(amount);
-        expense.setPayer(payer);
-        expense.setParticipants(new ArrayList<>(validParticipants));
+        expense.setTitle(valid.title());
+        expense.setAmount(valid.amount());
+        expense.setCurrency(valid.currency());
+        expense.setCategory(valid.category());
+        expense.setPayer(valid.payer());
+        expense.setParticipants(new ArrayList<>(valid.participants()));
         Expense savedExpense = expenseRepository.save(expense);
 
         // A régi nyers tartozások helyett újakat számolunk a módosított adatokból
@@ -76,10 +82,23 @@ public class BudgetService {
     }
 
     @Transactional
-    public void deleteExpense(Long id) {
+    public void deleteExpense(User currentUser, Long id) {
         Expense expense = findExpense(id);
+        checkCanModify(currentUser, expense);
         debtRepository.deleteByExpenseId(id);
         expenseRepository.delete(expense);
+    }
+
+    // Admin: minden kiadás, tartozás és rendezés törlése (a felhasználók megmaradnak)
+    @Transactional
+    public void deleteAllData(User currentUser) {
+        if (!currentUser.isAdmin()) {
+            throw new ForbiddenException("Az összes adatot csak az admin törölheti!");
+        }
+        settlementRepository.deleteAllInBatch();
+        debtRepository.deleteAllInBatch();
+        // Egyenként töröljük, hogy a résztvevő-lista (expense_participants) is törlődjön
+        expenseRepository.deleteAll();
     }
 
     public List<Expense> getAllExpenses() {
@@ -90,20 +109,34 @@ public class BudgetService {
         List<Debt> allDebts = new ArrayList<>(debtRepository.findAll());
         // A kiegyenlítés fordított irányú tartozásként nettósítja az eredetit
         for (Settlement settlement : settlementRepository.findAll()) {
-            allDebts.add(new Debt(settlement.getCreditor(), settlement.getDebtor(), settlement.getAmount()));
+            allDebts.add(new Debt(settlement.getCreditor(), settlement.getDebtor(),
+                    settlement.getAmount(), settlement.getCurrency()));
         }
         return debtService.simplifyDebts(allDebts);
     }
 
-    // Az adós -> hitelező egyszerűsített tartozás teljes kiegyenlítése
+    // Az adós -> hitelező tartozás teljes kiegyenlítése a megadott pénznemben
+    // (ha nincs megadva pénznem, akkor mindegyikben).
+    // Csak a hitelező jelölheti (ő tudja, hogy megkapta a pénzt), illetve az admin.
     @Transactional
-    public Settlement settleDebt(String debtor, String creditor) {
-        Debt balance = getSimplifiedBalances().stream()
+    public List<Settlement> settleDebt(User currentUser, String debtor, String creditor, String currencyCode) {
+        if (!currentUser.isAdmin() && !currentUser.getName().equals(creditor)) {
+            throw new ForbiddenException("Csak a hitelező jelölheti a tartozást rendezettnek!");
+        }
+        Currency currency = currencyCode == null || currencyCode.isBlank() ? null : Currency.parse(currencyCode);
+
+        List<Debt> balances = getSimplifiedBalances().stream()
                 .filter(d -> d.getDebtor().equals(debtor) && d.getCreditor().equals(creditor))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Nincs rendezendő tartozás: " + debtor + " -> " + creditor));
-        return settlementRepository.save(new Settlement(debtor, creditor, balance.getAmount()));
+                .filter(d -> currency == null || d.getCurrency() == currency)
+                .toList();
+        if (balances.isEmpty()) {
+            String currencyText = currency == null ? "" : " " + currency.name();
+            throw new IllegalArgumentException("Nincs rendezendő" + currencyText + " tartozás: " + debtor + " -> " + creditor);
+        }
+
+        return balances.stream()
+                .map(b -> settlementRepository.save(new Settlement(debtor, creditor, b.getAmount(), b.getCurrency())))
+                .toList();
     }
 
     private Expense findExpense(Long id) {
@@ -111,34 +144,57 @@ public class BudgetService {
                 .orElseThrow(() -> new NoSuchElementException("Nem található kiadás: " + id));
     }
 
-    // Közös ellenőrzés létrehozáshoz és szerkesztéshez; a végleges résztvevő-listát adja vissza
-    private List<String> validateExpense(String title, double amount, String payer, List<String> participants) {
-        if (title == null || title.isBlank()) {
+    // Csak a saját rögzítésű kiadás módosítható / törölhető; az admin bármelyiket.
+    // A createdBy nélküli (régi) tételeket csak az admin kezelheti.
+    private void checkCanModify(User currentUser, Expense expense) {
+        if (currentUser.isAdmin()) {
+            return;
+        }
+        if (expense.getCreatedBy() == null || !expense.getCreatedBy().equals(currentUser.getName())) {
+            throw new ForbiddenException("Csak a saját kiadásaidat módosíthatod vagy törölheted!");
+        }
+    }
+
+    private record ValidExpense(String title, double amount, Currency currency, Category category,
+                                String payer, List<String> participants) {
+    }
+
+    // Közös ellenőrzés létrehozáshoz és szerkesztéshez
+    private ValidExpense validateExpense(User currentUser, ExpenseInput input) {
+        if (input.title() == null || input.title().isBlank()) {
             throw new IllegalArgumentException("A megnevezés nem lehet üres!");
         }
-        if (amount <= 0) {
+        if (input.amount() == null || input.amount() <= 0) {
             throw new IllegalArgumentException("Az összegnek pozitívnak kell lennie!");
         }
+        Currency currency = Currency.parse(input.currency());
+        Category category = Category.parse(input.category());
 
         List<String> allUsers = getAllUsers();
+        // Sima felhasználónál mindig ő a fizető (a kérésben küldött értéket figyelmen kívül hagyjuk),
+        // az admin bárki nevében rögzíthet
+        String payer = currentUser.isAdmin() ? input.payer() : currentUser.getName();
         if (payer == null || !allUsers.contains(payer)) {
             throw new IllegalArgumentException("Ismeretlen fizető: " + payer);
         }
-        if (participants == null || participants.isEmpty()) {
-            return new ArrayList<>(allUsers);
-        }
 
-        // Ismétlődő nevek kiszűrése, a sorrend megtartásával
-        List<String> unique = new ArrayList<>(new LinkedHashSet<>(participants));
-        for (String participant : unique) {
-            if (!allUsers.contains(participant)) {
-                throw new IllegalArgumentException("Ismeretlen résztvevő: " + participant);
+        List<String> participants;
+        if (input.participants() == null || input.participants().isEmpty()) {
+            participants = new ArrayList<>(allUsers);
+        } else {
+            // Ismétlődő nevek kiszűrése, a sorrend megtartásával
+            participants = new ArrayList<>(new LinkedHashSet<>(input.participants()));
+            for (String participant : participants) {
+                if (!allUsers.contains(participant)) {
+                    throw new IllegalArgumentException("Ismeretlen résztvevő: " + participant);
+                }
+            }
+            // Ha csak maga a fizető a résztvevő, nem keletkezne tartozás
+            if (participants.size() == 1 && participants.get(0).equals(payer)) {
+                throw new IllegalArgumentException("Legalább egy résztvevőnek a fizetőn kívül kell lennie!");
             }
         }
-        // Ha csak maga a fizető a résztvevő, nem keletkezne tartozás
-        if (unique.size() == 1 && unique.get(0).equals(payer)) {
-            throw new IllegalArgumentException("Legalább egy résztvevőnek a fizetőn kívül kell lennie!");
-        }
-        return unique;
+
+        return new ValidExpense(input.title().trim(), input.amount(), currency, category, payer, participants);
     }
 }
