@@ -59,6 +59,11 @@ public class BudgetApiController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/settlements")
+    public List<Settlement> getSettlements() {
+        return budgetService.getAllSettlements();
+    }
+
     @PostMapping("/settlements")
     public List<Settlement> settleDebt(@RequestAttribute(SessionManager.CURRENT_USER_ATTRIBUTE) User currentUser,
                                        @RequestBody SettlementRequest request) {

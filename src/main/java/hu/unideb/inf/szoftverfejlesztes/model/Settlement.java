@@ -36,11 +36,15 @@ public class Settlement {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    public Settlement(String debtor, String creditor, double amount, Currency currency) {
+    // Ki jelölte rendezettnek (felhasználónév); régi soroknál üres
+    private String settledBy;
+
+    public Settlement(String debtor, String creditor, double amount, Currency currency, String settledBy) {
         this.debtor = debtor;
         this.creditor = creditor;
         this.amount = amount;
         this.currency = currency;
+        this.settledBy = settledBy;
         this.createdAt = LocalDateTime.now();
     }
 

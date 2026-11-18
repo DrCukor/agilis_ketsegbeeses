@@ -5,6 +5,7 @@ import hu.unideb.inf.szoftverfejlesztes.repository.UserRepository;
 import hu.unideb.inf.szoftverfejlesztes.services.AuthService;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +13,7 @@ import java.util.List;
 
 // Indításkor létrehozza az alapértelmezett felhasználókat, ha még nincsenek az adatbázisban
 @Component
+@Order(1) // a demó adatok (DemoDataInitializer) előtt kell lefutnia
 public class DefaultUsersInitializer implements ApplicationRunner {
 
     private record DefaultUser(String email, String name, String password, boolean admin) {

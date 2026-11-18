@@ -135,8 +135,14 @@ public class BudgetService {
         }
 
         return balances.stream()
-                .map(b -> settlementRepository.save(new Settlement(debtor, creditor, b.getAmount(), b.getCurrency())))
+                .map(b -> settlementRepository.save(
+                        new Settlement(debtor, creditor, b.getAmount(), b.getCurrency(), currentUser.getName())))
                 .toList();
+    }
+
+    // Korábbi rendezések (tartozás-kiegyenlítések) előzménye, a legfrissebb elöl
+    public List<Settlement> getAllSettlements() {
+        return settlementRepository.findAllByOrderByCreatedAtDescIdDesc();
     }
 
     private Expense findExpense(Long id) {
