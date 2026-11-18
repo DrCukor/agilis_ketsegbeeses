@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="hu" class="auth-pending">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KözösKassza - Statisztika</title>
+    <!-- Téma (világos/sötét) beállítása a kirajzolás előtt -->
+    <script src="theme.js"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#4f46e5', // Indigo 600
+                        primaryHover: '#4338ca', // Indigo 700
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="theme.css">
+    <!-- Diagramok -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- Közös segédfüggvények -->
+    <script src="common.js"></script>
+    <style>
+        select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-6 min-w-0">
+                <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    <h1 class="hidden sm:block text-xl font-bold text-slate-900 tracking-tight">KözösKassza</h1>
+                </div>
+                <!-- Navigáció -->
+                <nav class="flex items-center gap-1 text-sm font-medium">
+                    <a href="/" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">Kiadások</a>
+                    <a href="/stats.html" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800" aria-current="page">Statisztika</a>
+                </nav>
+            </div>
+            <div class="flex items-center gap-3 sm:gap-4">
+                <!-- Munkamenet visszaszámláló -->
+                <span class="hidden md:flex items-center gap-1 text-xs font-medium text-slate-500" title="Automatikus kijelentkeztetésig hátralévő idő">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span id="sessionCountdown"></span>
+                </span>
+                <!-- Sötét mód kapcsoló (csúszka) -->
+                <button type="button" class="theme-switch" data-theme-toggle role="switch" aria-checked="false" aria-label="Sötét mód" title="Sötét mód">
+                    <span class="theme-switch-knob">
+                        <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                        <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    </span>
+                </button>
+                <div id="currentUserAvatar" class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-primary font-bold"></div>
+                <span id="currentUserName" class="hidden sm:inline-block font-medium text-sm text-slate-600"></span>
+                <button type="button" id="logoutBtn" class="text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg px-3 py-1.5 transition-colors">
+                    Kijelentkezés
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col gap-8">
+
+        <!-- Cím és pénznem-választó -->
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-900">Statisztika</h2>
+                <p class="text-sm text-slate-500 mt-1">A pénznemeket külön mutatjuk, átváltás nélkül.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="statsCurrency" class="text-sm font-medium text-slate-600">Pénznem:</label>
+                <select id="statsCurrency" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium bg-white"></select>
+            </div>
+        </div>
+
+        <!-- Üres állapot -->
+        <div id="statsEmpty" class="hidden bg-white rounded-2xl shadow-sm border border-slate-100 p-12 text-center text-slate-400 text-sm">
+            Még nincsenek rögzített kiadások, így nincs mit megjeleníteni.
+        </div>
+
+        <div id="statsContent" class="flex flex-col gap-8">
+            <!-- Összesítő kártyák -->
+            <div id="kpiTiles" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Ki mennyit fizetett és mennyi esett rá -->
+                <section class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-800">Ki mennyit fizetett?</h3>
+                        <p class="text-xs text-slate-500">A „Rá eső rész” az, amennyit a közös kiadásokból ő fogyasztott.</p>
+                    </div>
+                    <div class="relative h-72"><canvas id="paidChart" aria-label="Ki mennyit fizetett diagram" role="img"></canvas></div>
+                </section>
+
+                <!-- Kategóriák szerinti megoszlás -->
+                <section class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-800">Kategóriák szerint</h3>
+                        <p class="text-xs text-slate-500">Mire ment el a pénz?</p>
+                    </div>
+                    <div class="relative h-72"><canvas id="categoryChart" aria-label="Kategóriák szerinti megoszlás diagram" role="img"></canvas></div>
+                </section>
+            </div>
+
+            <!-- Havi költés -->
+            <section class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-800">Havi költés</h3>
+                    <p id="monthlyNote" class="text-xs text-slate-500">Összes kiadás hónaponként.</p>
+                </div>
+                <div class="relative h-72"><canvas id="monthlyChart" aria-label="Havi költés diagram" role="img"></canvas></div>
+            </section>
+        </div>
+    </main>
+
+<script>
+    let allUsers = [];
+    let allExpenses = [];
+    const charts = {};
+
+    // Diagram-színek a világos / sötét témához igazítva
+    function chartTheme() {
+        const dark = document.documentElement.classList.contains("dark");
+        return {
+            text: dark ? "#cbd5e1" : "#475569",
+            grid: dark ? "rgba(148, 163, 184, 0.15)" : "rgba(148, 163, 184, 0.25)",
+            border: dark ? "#1e293b" : "#ffffff"
+        };
+    }
+
+    function selectedCurrency() {
+        return document.getElementById("statsCurrency").value;
+    }
+
+    // Csak azok a pénznemek választhatók, amelyekben van kiadás (forint mindig)
+    function initCurrencySelect() {
+        const used = new Set(allExpenses.map(e => e.currency));
+        used.add("HUF");
+        document.getElementById("statsCurrency").innerHTML = Object.entries(CURRENCIES)
+            .filter(([code]) => used.has(code))
+            .map(([code, info]) => `<option value="${code}">${code} (${info.symbol})</option>`).join('');
+    }
+
+    function renderKpis(expenses, currency) {
+        const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+        const largest = expenses.reduce((max, e) => (!max || e.amount > max.amount ? e : max), null);
+        const tiles = [
+            { label: "Összes kiadás", value: formatMoney(total, currency) },
+            { label: "Kiadások száma", value: `${expenses.length} db` },
+            { label: "Átlagos kiadás", value: formatMoney(expenses.length ? total / expenses.length : 0, currency) },
+            { label: "Legnagyobb tétel", value: largest ? formatMoney(largest.amount, currency) : "–", sub: largest ? largest.title : "" }
+        ];
+        document.getElementById("kpiTiles").innerHTML = tiles.map(t => `
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">${t.label}</p>
+                <p class="text-2xl font-bold text-slate-900 mt-1">${escapeHtml(t.value)}</p>
+                ${t.sub ? `<p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml(t.sub)}</p>` : ""}
+            </div>
+        `).join('');
+    }
+
+    function replaceChart(id, config) {
+        if (charts[id]) charts[id].destroy();
+        charts[id] = new Chart(document.getElementById(id), config);
+    }
+
+    function moneyTooltip(currency) {
+        return { callbacks: { label: ctx => `${ctx.dataset.label || ctx.label}: ${formatMoney(ctx.parsed.y ?? ctx.parsed, currency)}` } };
+    }
+
+    // Személyenként: mennyit fizetett és mennyi esett rá a közös kiadásokból
+    function renderPaidChart(expenses, currency, theme) {
+        const people = [...new Set([...allUsers, ...expenses.map(e => e.payer)])];
+        const paid = Object.fromEntries(people.map(p => [p, 0]));
+        const consumed = Object.fromEntries(people.map(p => [p, 0]));
+        for (const e of expenses) {
+            paid[e.payer] += e.amount;
+            const participants = e.participants && e.participants.length ? e.participants : allUsers;
+            participants.forEach(p => { if (p in consumed) consumed[p] += e.amount / participants.length; });
+        }
+
+        replaceChart("paidChart", {
+            type: "bar",
+            data: {
+                labels: people,
+                datasets: [
+                    { label: "Fizetett", data: people.map(p => paid[p]), backgroundColor: "#6366f1", borderRadius: 6 },
+                    { label: "Rá eső rész", data: people.map(p => consumed[p]), backgroundColor: "#f59e0b", borderRadius: 6 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: theme.text } }, tooltip: moneyTooltip(currency) },
+                scales: {
+                    x: { ticks: { color: theme.text }, grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { color: theme.text, callback: v => formatMoney(v, currency) }, grid: { color: theme.grid } }
+                }
+            }
+        });
+    }
+
+    function renderCategoryChart(expenses, currency, theme) {
+        const totals = {};
+        expenses.forEach(e => { totals[e.category] = (totals[e.category] || 0) + e.amount; });
+        const codes = Object.keys(CATEGORIES).filter(c => totals[c]);
+
+        replaceChart("categoryChart", {
+            type: "doughnut",
+            data: {
+                labels: codes.map(c => `${CATEGORIES[c].icon} ${CATEGORIES[c].label}`),
+                datasets: [{
+                    data: codes.map(c => totals[c]),
+                    backgroundColor: codes.map((c, i) => AVATAR_COLORS[i % AVATAR_COLORS.length].hex),
+                    borderColor: theme.border,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: "bottom", labels: { color: theme.text } },
+                    tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatMoney(ctx.parsed, currency)}` } }
+                }
+            }
+        });
+    }
+
+    // Havi bontás a rögzítés dátuma alapján (a dátum nélküli régi tételek kimaradnak)
+    function renderMonthlyChart(expenses, currency, theme) {
+        const byMonth = {};
+        let undated = 0;
+        for (const e of expenses) {
+            if (!e.createdAt) { undated++; continue; }
+            const key = e.createdAt.slice(0, 7); // ÉÉÉÉ-HH
+            byMonth[key] = (byMonth[key] || 0) + e.amount;
+        }
+        const months = Object.keys(byMonth).sort();
+        const labels = months.map(m => new Date(`${m}-01T00:00:00`).toLocaleDateString("hu-HU", { year: "numeric", month: "short" }));
+
+        document.getElementById("monthlyNote").textContent = undated
+            ? `Összes kiadás hónaponként. ${undated} régi, dátum nélküli tétel nem szerepel benne.`
+            : "Összes kiadás hónaponként.";
+
+        replaceChart("monthlyChart", {
+            type: "bar",
+            data: {
+                labels,
+                datasets: [{ label: "Költés", data: months.map(m => byMonth[m]), backgroundColor: "#6366f1", borderRadius: 6, maxBarThickness: 64 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: moneyTooltip(currency) },
+                scales: {
+                    x: { ticks: { color: theme.text }, grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { color: theme.text, callback: v => formatMoney(v, currency) }, grid: { color: theme.grid } }
+                }
+            }
+        });
+    }
+
+    function renderStats() {
+        const currency = selectedCurrency();
+        const expenses = allExpenses.filter(e => e.currency === currency);
+
+        const empty = allExpenses.length === 0;
+        document.getElementById("statsEmpty").classList.toggle("hidden", !empty);
+        document.getElementById("statsContent").classList.toggle("hidden", empty);
+        if (empty) return;
+
+        const theme = chartTheme();
+        renderKpis(expenses, currency);
+        renderPaidChart(expenses, currency, theme);
+        renderCategoryChart(expenses, currency, theme);
+        renderMonthlyChart(expenses, currency, theme);
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        const user = await loadCurrentUser();
+        if (!user) return;
+
+        try {
+            const [usersRes, expensesRes] = await Promise.all([apiFetch('/api/users'), apiFetch('/api/expenses')]);
+            allUsers = await usersRes.json();
+            allExpenses = await expensesRes.json();
+        } catch (err) {
+            showToast("Nem sikerült betölteni az adatokat.", "error");
+            return;
+        }
+
+        initCurrencySelect();
+        renderStats();
+        document.getElementById("statsCurrency").addEventListener("change", renderStats);
+
+        // Témaváltáskor a diagramok színeit is frissítjük
+        new MutationObserver(renderStats).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    });
+</script>
+</body>
+</html>

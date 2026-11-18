@@ -26,6 +26,16 @@ public class Expense {
     @Column(nullable = false)
     private double amount;
 
+    // Régi (oszlop előtti) soroknál üres, ezek forintot jelentenek
+    @Convert(converter = Currency.JpaConverter.class)
+    @Column(length = 10)
+    private Currency currency;
+
+    // Régi (oszlop előtti) soroknál üres, ezek "Egyéb" kategóriát jelentenek
+    @Convert(converter = Category.JpaConverter.class)
+    @Column(length = 20)
+    private Category category;
+
     @Column(nullable = false)
     private String payer;
 
@@ -37,12 +47,27 @@ public class Expense {
     // Rögzítés időpontja (szerkesztéskor nem változik); régi tételeknél üres lehet
     private LocalDateTime createdAt;
 
-    public Expense(String title, double amount, String payer, List<String> participants) {
+    // Ki rögzítette (felhasználónév); régi tételeknél üres, ezeket csak az admin módosíthatja
+    private String createdBy;
+
+    public Expense(String title, double amount, Currency currency, Category category,
+                   String payer, List<String> participants, String createdBy) {
         this.title = title;
         this.amount = amount;
+        this.currency = currency;
+        this.category = category;
         this.payer = payer;
         this.participants = participants;
+        this.createdBy = createdBy;
         this.createdAt = LocalDateTime.now();
+    }
+
+    public Currency getCurrency() {
+        return currency == null ? Currency.HUF : currency;
+    }
+
+    public Category getCategory() {
+        return category == null ? Category.EGYEB : category;
     }
 
     public double getSharePerPerson() {
