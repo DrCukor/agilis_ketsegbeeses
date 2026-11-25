@@ -15,6 +15,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByNameIgnoreCase(String name);
 
+    Optional<User> findByName(String name);
+
     // A kiadásokban csak a nem-admin felhasználók szerepelhetnek
     List<User> findAllByAdminFalse();
 }

@@ -7,19 +7,26 @@ import java.util.Locale;
 
 // Pénznem. A tartozásokat pénznemenként külön vezetjük, nincs átváltás közöttük.
 public enum Currency {
-    HUF(0.5),   // fél forint alatti maradék rendezettnek számít
-    EUR(0.005), // fél cent alatti maradék rendezettnek számít
-    USD(0.005),
-    GBP(0.005);
+    HUF(0.5, 0),   // fél forint alatti maradék rendezettnek számít; egész forintra kerekítünk
+    EUR(0.005, 2), // fél cent alatti maradék rendezettnek számít; centre kerekítünk
+    USD(0.005, 2),
+    GBP(0.005, 2);
 
     private final double epsilon;
+    // Hány tizedesjegyre kerekítjük a megosztott részeket
+    private final int decimals;
 
-    Currency(double epsilon) {
+    Currency(double epsilon, int decimals) {
         this.epsilon = epsilon;
+        this.decimals = decimals;
     }
 
     public double getEpsilon() {
         return epsilon;
+    }
+
+    public int getDecimals() {
+        return decimals;
     }
 
     // Üres értéknél forint; ismeretlen értéknél hibát dob

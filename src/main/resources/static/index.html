@@ -27,7 +27,7 @@
         }
     </script>
     <link rel="stylesheet" href="theme.css">
-    <!-- Közös segédfüggvények (formázás, pénznemek, kategóriák, értesítések, munkamenet) -->
+    <!-- Közös segédfüggvények (formázás, pénznemek, kategóriák, értesítések, munkamenet, csoportok) -->
     <script src="common.js"></script>
     <style>
         /* Egyedi fókusz stílusok az inputokhoz (React-szerű érzet) */
@@ -42,19 +42,21 @@
 
     <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-            <div class="flex items-center gap-6 min-w-0">
-                <div class="flex items-center gap-2">
-                    <!-- Logó ikon -->
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <div class="flex items-center gap-4 lg:gap-6 min-w-0">
+                <a href="/groups.html" class="flex items-center gap-2 min-w-0" title="Vissza a csoportokhoz">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 flex-shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                     </svg>
-                    <h1 class="hidden sm:block text-xl font-bold text-slate-900 tracking-tight">KözösKassza</h1>
-                </div>
-                <!-- Navigáció -->
+                    <div class="min-w-0 leading-tight">
+                        <p class="text-xs font-medium text-slate-500">← Csoportok</p>
+                        <p id="currentGroupName" class="text-sm font-bold text-slate-900 truncate max-w-[10rem] sm:max-w-[14rem]"></p>
+                    </div>
+                </a>
+                <!-- Navigáció (a hivatkozások a csoportra mutatnak) -->
                 <nav class="flex items-center gap-1 text-sm font-medium">
-                    <a href="/" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800" aria-current="page">Kiadások</a>
-                    <a href="/history.html" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">Rendezések</a>
-                    <a href="/stats.html" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">Statisztika</a>
+                    <a data-group-link="/" href="/" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800" aria-current="page">Kiadások</a>
+                    <a data-group-link="/history.html" href="/history.html" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">Rendezések</a>
+                    <a data-group-link="/stats.html" href="/stats.html" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">Statisztika</a>
                 </nav>
             </div>
             <div class="flex items-center gap-3 sm:gap-4">
@@ -83,7 +85,7 @@
         <!--
           Reszponzív Grid:
           - Mobilon 1 oszlop (egymás alatt)
-          - Nagy kijelzőn 3 oszlop (2 oszlop balra az űrlapnak/egyenlegeknek, 1 jobbra a listának)
+          - Nagy kijelzőn 3 oszlop (2 oszlop balra az űrlapnak/egyenlegeknek, 1 jobbra a listáknak)
         -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -115,7 +117,7 @@
                                 </div>
                             </div>
 
-                            <!-- Ki fizette (csak az adminnak; mindenki más a saját nevében rögzít) -->
+                            <!-- Ki fizette (csak a csoport tulajdonosának / adminnak; mindenki más a saját nevében rögzít) -->
                             <div id="payerField" class="hidden flex-1 flex-col gap-1.5">
                                 <label for="payer" class="text-sm font-medium text-slate-700">Ki fizette?</label>
                                 <select id="payer" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all duration-200 bg-white"></select>
@@ -128,14 +130,37 @@
                             <div id="categoryChips" class="flex flex-wrap gap-2" role="radiogroup" aria-label="Kategória"></div>
                         </div>
 
-                        <!-- Résztvevők kiválasztása (chipek) -->
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3">
+                        <!-- Résztvevők és megosztás -->
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-4">
                             <div class="flex items-center justify-between">
                                 <span class="text-sm text-slate-600 font-medium">Kik között oszlik meg?</span>
                                 <button type="button" id="selectAllParticipantsBtn" class="text-sm text-primary font-semibold hover:underline">Mindenki</button>
                             </div>
                             <div id="participantChips" class="flex flex-wrap gap-2"></div>
+
+                            <!-- Megosztási mód -->
+                            <div class="flex flex-col gap-1.5">
+                                <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Megosztás módja</span>
+                                <div id="splitModeButtons" class="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-white border border-slate-200 rounded-xl p-1" role="radiogroup" aria-label="Megosztás módja"></div>
+                            </div>
+
+                            <!-- Résztvevőnkénti csúszkák (nem egyenlő megosztásnál) -->
+                            <div id="splitRows" class="hidden flex-col gap-3"></div>
+
                             <p id="splitSummary" class="text-xs font-medium text-slate-500"></p>
+                        </div>
+
+                        <!-- Havonta ismétlődő kiadás (csak új kiadásnál) -->
+                        <div id="recurringField" class="flex flex-col gap-2">
+                            <label class="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer w-fit">
+                                <input type="checkbox" id="recurringCheckbox" class="w-4 h-4 accent-indigo-600">
+                                🔁 Havonta ismétlődik
+                            </label>
+                            <div id="recurringOptions" class="hidden items-center gap-2 text-sm text-slate-600 pl-6">
+                                <span>Minden hónap</span>
+                                <select id="recurringDay" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm bg-white"></select>
+                                <span>napján. Az első kiadás most jön létre.</span>
+                            </div>
                         </div>
 
                         <!-- Űrlap hibaüzenet -->
@@ -172,9 +197,9 @@
                 </section>
             </div>
 
-            <!-- Jobb oldali oszlop: Lista -->
-            <div class="lg:col-span-1">
-                <section class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden h-full">
+            <!-- Jobb oldali oszlop: Listák -->
+            <div class="lg:col-span-1 flex flex-col gap-8">
+                <section class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                     <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
                         <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -190,6 +215,15 @@
                             Összes megtekintése &rarr;
                         </button>
                     </div>
+                </section>
+
+                <section class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+                        <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                            <span aria-hidden="true">🔁</span> Ismétlődő kiadások
+                        </h2>
+                    </div>
+                    <div id="recurringList" class="flex flex-col divide-y divide-slate-100"></div>
                 </section>
             </div>
 
@@ -255,9 +289,9 @@
 
             <!-- Modal Lábléc -->
             <div class="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-3">
-                <!-- Csak az adminnak látszik -->
+                <!-- Csak a csoport tulajdonosának / adminnak látszik -->
                 <button type="button" id="deleteAllDataBtn" class="hidden px-4 py-2 text-sm font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
-                    Összes adat törlése
+                    Csoport összes adatának törlése
                 </button>
                 <button type="button" id="closeModalFooterBtn" class="ml-auto px-5 py-2 text-sm font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-all">
                     Bezárás
@@ -266,135 +300,104 @@
         </div>
     </div>
 
-    <!-- MEGERŐSÍTŐ ABLAK (törlés, rendezés) -->
-    <div id="confirmModal" class="fixed inset-0 z-[60] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
-        <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 flex flex-col gap-4">
-            <h3 id="confirmTitle" class="text-lg font-bold text-slate-800"></h3>
-            <p id="confirmMessage" class="text-sm text-slate-600"></p>
-            <!-- Választási lehetőségek (pl. melyik pénznemben rendez) -->
-            <div id="confirmChoices" class="hidden flex-col gap-2" role="radiogroup" aria-labelledby="confirmTitle"></div>
-            <!-- Csak veszélyes műveletnél: a megadott szót be kell gépelni -->
-            <div id="confirmTextField" class="hidden flex-col gap-1.5">
-                <label for="confirmTextInput" id="confirmTextLabel" class="text-xs font-medium text-slate-600"></label>
-                <input type="text" id="confirmTextInput" autocomplete="off" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            </div>
-            <div class="flex justify-end gap-3 mt-2">
-                <button type="button" id="confirmCancelBtn" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors">Mégse</button>
-                <button type="button" id="confirmOkBtn" class="px-4 py-2 text-sm font-semibold text-white rounded-xl shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"></button>
-            </div>
-        </div>
-    </div>
-
 <script>
+    // Megosztási módok: felirat, mértékegység, csúszka-tartomány
+    const SPLIT_MODES = {
+        EQUAL: { label: "Egyenlő" },
+        PERCENT: { label: "Százalék" },
+        AMOUNT: { label: "Összeg" },
+        SHARES: { label: "Részarány" }
+    };
+    // A százalékokat egy tizedesjegyre kerekítjük
+    const PERCENT_DECIMALS = 1;
+
     // Globális állapottárolás
+    let groupId = null;
+    let group = null;          // a csoport adatai (név, szerep, canManage)
+    let currentUser = null;
     let allExpensesCache = [];
     let balancesCache = [];
+    let recurringCache = [];
     // Pár szerint összevont egyenlegek (adós -> hitelező, pénznemenkénti összegekkel)
     let balancePairs = [];
-    // A kiadásokban szereplő felhasználók nevei, a /api/users végpontról töltjük be
+    // A csoport tagjai (ők lehetnek fizetők és résztvevők)
     let allUsers = [];
     let selectedParticipants = new Set();
     let selectedCategory = "EGYEB";
-    let currentUser = null;
+    // Megosztás: mód, résztvevőnkénti értékek (%, összeg vagy rész), rögzített (lakatolt) résztvevők
+    let splitMode = "EQUAL";
+    let splitValues = {};
+    let lockedParticipants = new Set();
     // Szerkesztés alatt álló kiadás azonosítója (null = új kiadás rögzítése)
     let editingExpenseId = null;
 
-    // ---------- 0. Felhasználók és jogosultságok ----------
+    // ---------- 0. Csoport, tagok és jogosultságok ----------
 
-    async function loadUsers() {
-        const res = await apiFetch('/api/users');
+    async function loadMembers() {
+        const res = await apiFetch(groupApi(groupId, '/members'));
         allUsers = await res.json();
         selectedParticipants = new Set(allUsers);
     }
 
-    // A bejelentkezett felhasználó részt vesz-e a kiadásokban (az admin nem)
+    // A tulajdonos és az admin kezeli a csoportot (fizető választása, bármely tétel módosítása)
+    function canManage() {
+        return group && group.canManage;
+    }
+
+    // A bejelentkezett felhasználó részt vesz-e a csoport kiadásaiban (az admin nem)
     function isParticipant() {
         return currentUser && allUsers.includes(currentUser.name);
     }
 
-    // Saját rögzítésű kiadást módosíthat / törölhet, az admin bármelyiket
+    // Saját rögzítésű kiadást módosíthat / törölhet, a tulajdonos és az admin bármelyiket
     function canModify(expense) {
-        return currentUser.admin || expense.createdBy === currentUser.name;
+        return canManage() || expense.createdBy === currentUser.name;
     }
 
-    // A fizető: adminnál a választott személy, mindenki másnál saját maga
+    // A fizető: tulajdonosnál / adminnál a választott személy, mindenki másnál saját maga
     function getEffectivePayer() {
-        return currentUser.admin ? document.getElementById("payer").value : currentUser.name;
+        return canManage() ? document.getElementById("payer").value : currentUser.name;
     }
 
     function avatarColor(name) {
         return getAvatarColor(name, allUsers);
     }
 
-    // ---------- 1. Megerősítő ablak ----------
-
-    // Saját megerősítő ablak a böngésző confirm() helyett; Promise-t ad vissza:
-    // jóváhagyáskor true (vagy choices esetén a kiválasztott érték), elvetéskor false.
-    // requireText esetén a megadott szót be kell gépelni (pl. TÖRLÉS) a jóváhagyáshoz.
-    // choices: [{ value, label }] választógombok, az első alapból kijelölve.
-    let confirmResolver = null;
-
-    function showConfirm({ title, message, confirmText, danger = false, requireText = null, choices = null }) {
-        const choicesBox = document.getElementById("confirmChoices");
-        choicesBox.classList.toggle("hidden", !choices);
-        choicesBox.classList.toggle("flex", !!choices);
-        choicesBox.innerHTML = (choices || []).map((choice, i) => `
-            <label class="flex items-center gap-3 border border-slate-200 rounded-xl px-3 py-2 cursor-pointer hover:bg-slate-50 transition-colors">
-                <input type="radio" name="confirmChoice" value="${escapeHtml(choice.value)}" ${i === 0 ? "checked" : ""} class="accent-indigo-600">
-                <span class="text-sm font-medium text-slate-700">${escapeHtml(choice.label)}</span>
-            </label>
-        `).join('');
-
-        document.getElementById("confirmTitle").textContent = title;
-        document.getElementById("confirmMessage").textContent = message;
-        const okBtn = document.getElementById("confirmOkBtn");
-        okBtn.textContent = confirmText;
-        okBtn.className = `px-4 py-2 text-sm font-semibold text-white rounded-xl shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${danger ? "bg-rose-600 hover:bg-rose-700" : "bg-primary hover:bg-primaryHover"}`;
-
-        const textField = document.getElementById("confirmTextField");
-        const textInput = document.getElementById("confirmTextInput");
-        textInput.value = "";
-        textField.classList.toggle("hidden", !requireText);
-        textField.classList.toggle("flex", !!requireText);
-        document.getElementById("confirmTextLabel").textContent = requireText ? `A megerősítéshez írd be: ${requireText}` : "";
-        textInput.oninput = () => { okBtn.disabled = textInput.value.trim() !== requireText; };
-        okBtn.disabled = !!requireText;
-
-        document.getElementById("confirmModal").classList.remove("hidden");
-        (requireText ? textInput : okBtn).focus();
-        return new Promise(resolve => { confirmResolver = resolve; });
+    function currentAmount() {
+        const amount = parseFloat(document.getElementById("amount").value);
+        return isNaN(amount) || amount <= 0 ? 0 : amount;
     }
 
-    function closeConfirm(result) {
-        // Választógomboknál jóváhagyáskor a kiválasztott értéket adjuk vissza
-        const checked = document.querySelector('#confirmChoices input[name="confirmChoice"]:checked');
-        if (result && checked) result = checked.value;
-
-        document.getElementById("confirmModal").classList.add("hidden");
-        if (confirmResolver) {
-            confirmResolver(result);
-            confirmResolver = null;
-        }
+    function currentCurrency() {
+        return document.getElementById("currency").value;
     }
 
-    function isConfirmOpen() {
-        return !document.getElementById("confirmModal").classList.contains("hidden");
+    // Magyar napjelölés: 1-jén, 2-án, 4-én ...
+    function dayWithSuffix(day) {
+        const suffixes = { 1: "jén", 2: "án", 3: "án", 4: "én", 5: "én", 6: "án", 7: "én", 8: "án", 9: "én", 10: "én",
+            11: "én", 12: "én", 13: "án", 14: "én", 15: "én", 16: "án", 17: "én", 18: "án", 19: "én", 20: "án",
+            21: "én", 22: "én", 23: "án", 24: "én", 25: "én", 26: "án", 27: "én", 28: "án" };
+        return `${day}-${suffixes[day] || "én"}`;
     }
 
-    // ---------- 2. Új kiadás / szerkesztés űrlap ----------
+    // ---------- 1. Új kiadás / szerkesztés űrlap ----------
 
     function initFormOptions() {
         const userOptions = allUsers.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
 
-        // A fizető-választó csak az adminnak látszik
+        // A fizető-választó csak a tulajdonosnak / adminnak látszik
         document.getElementById("payer").innerHTML = userOptions;
         const payerField = document.getElementById("payerField");
-        payerField.classList.toggle("hidden", !currentUser.admin);
-        payerField.classList.toggle("flex", currentUser.admin);
+        payerField.classList.toggle("hidden", !canManage());
+        payerField.classList.toggle("flex", canManage());
         resetPayer();
 
         document.getElementById("currency").innerHTML = Object.entries(CURRENCIES)
             .map(([code, info]) => `<option value="${code}">${code} (${info.symbol})</option>`).join('');
+
+        const today = Math.min(new Date().getDate(), 28);
+        document.getElementById("recurringDay").innerHTML = Array.from({ length: 28 }, (_, i) => i + 1)
+            .map(d => `<option value="${d}" ${d === today ? "selected" : ""}>${dayWithSuffix(d)}</option>`).join('');
 
         // Modal szűrőinek feltöltése
         document.getElementById("modalFilterPayer").innerHTML = `<option value="ALL">Minden fizető</option>` + userOptions;
@@ -403,8 +406,8 @@
     }
 
     function resetPayer() {
-        if (currentUser.admin) {
-            document.getElementById("payer").value = allUsers[0] ?? "";
+        if (canManage()) {
+            document.getElementById("payer").value = isParticipant() ? currentUser.name : (allUsers[0] ?? "");
         }
     }
 
@@ -426,9 +429,7 @@
 
     // Résztvevő-chipek: kik között oszlik meg a kiadás
     function renderParticipantChips() {
-        const container = document.getElementById("participantChips");
-
-        container.innerHTML = allUsers.map(u => {
+        document.getElementById("participantChips").innerHTML = allUsers.map(u => {
             const selected = selectedParticipants.has(u);
             const colors = avatarColor(u);
             const chipClass = selected
@@ -444,51 +445,262 @@
                 </button>
             `;
         }).join('');
-
-        updateSplitSummary();
     }
 
     function getSelectedParticipants() {
-        // A sorrend az allUsers sorrendjét követi
+        // A sorrend a tagok sorrendjét követi
         return allUsers.filter(u => selectedParticipants.has(u));
     }
 
-    // Hibaüzenet, ha a kiválasztás nem menthető; egyébként null
-    function getParticipantsError() {
+    // A résztvevők vagy a mód változásakor újrarajzoljuk a megosztás teljes részét
+    function refreshSplit(resetValues = true) {
+        renderParticipantChips();
+        if (resetValues) resetSplitValues();
+        renderSplitModeButtons();
+        renderSplitRows();
+        updateSplitSummary();
+    }
+
+    // ---------- 2. Egyéni megosztás (százalék / összeg / részarány csúszkákkal) ----------
+
+    function renderSplitModeButtons() {
+        document.getElementById("splitModeButtons").innerHTML = Object.entries(SPLIT_MODES).map(([mode, info]) => {
+            const selected = mode === splitMode;
+            const cls = selected ? "bg-primary text-white shadow-sm" : "text-slate-600 hover:bg-slate-100";
+            return `<button type="button" data-split-mode="${mode}" role="radio" aria-checked="${selected}"
+                            class="${cls} rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors">${info.label}</button>`;
+        }).join('');
+    }
+
+    // Hány tizedesre kerekítünk az adott módban (százalék: 1, összeg: a pénznemé)
+    function splitDecimals() {
+        if (splitMode === "PERCENT") return PERCENT_DECIMALS;
+        if (splitMode === "AMOUNT") return CURRENCIES[currentCurrency()].decimals;
+        return 2;
+    }
+
+    // Mennyi legyen a részek összege (százaléknál 100, összegnél a kiadás összege; részaránynál nincs ilyen)
+    function splitTarget() {
+        if (splitMode === "PERCENT") return 100;
+        if (splitMode === "AMOUNT") return currentAmount();
+        return null;
+    }
+
+    // Alapértékek: egyenlő elosztás (részaránynál mindenki 1 rész)
+    function resetSplitValues() {
+        const participants = getSelectedParticipants();
+        splitValues = {};
+        lockedParticipants = new Set([...lockedParticipants].filter(p => participants.includes(p)));
+        if (splitMode === "SHARES") {
+            participants.forEach(p => { splitValues[p] = 1; });
+        } else if (splitMode === "PERCENT" || splitMode === "AMOUNT") {
+            const parts = distributeRounded(splitTarget(), participants.map(() => 1), splitDecimals());
+            participants.forEach((p, i) => { splitValues[p] = parts[i]; });
+        }
+        lockedParticipants.clear();
+    }
+
+    function round(value, decimals) {
+        const scale = Math.pow(10, decimals);
+        return Math.round(value * scale) / scale;
+    }
+
+    function sumValues(participants) {
+        return participants.reduce((sum, p) => sum + (Number(splitValues[p]) || 0), 0);
+    }
+
+    // Egy résztvevő értékének módosítása: százaléknál és összegnél a maradékot a többi (nem rögzített)
+    // résztvevő között arányosan osztjuk szét, hogy az összeg mindig kijöjjön
+    function setSplitValue(person, rawValue) {
+        const decimals = splitDecimals();
+        let value = Math.max(0, Number(rawValue) || 0);
+
+        if (splitMode === "SHARES") {
+            splitValues[person] = round(value, 2);
+            return;
+        }
+
+        const participants = getSelectedParticipants();
+        const target = splitTarget();
+        const lockedSum = participants
+            .filter(p => p !== person && lockedParticipants.has(p))
+            .reduce((sum, p) => sum + (Number(splitValues[p]) || 0), 0);
+        const adjustable = participants.filter(p => p !== person && !lockedParticipants.has(p));
+
+        if (adjustable.length) {
+            value = Math.min(value, Math.max(0, target - lockedSum));
+        }
+        splitValues[person] = round(value, decimals);
+
+        if (adjustable.length) {
+            const remaining = Math.max(0, target - lockedSum - splitValues[person]);
+            let weights = adjustable.map(p => Number(splitValues[p]) || 0);
+            if (weights.every(w => w === 0)) weights = adjustable.map(() => 1);
+            const parts = distributeRounded(remaining, weights, decimals);
+            adjustable.forEach((p, i) => { splitValues[p] = parts[i]; });
+        }
+    }
+
+    // Összeg módban a kiadás összegének változásakor a részeket arányosan átméretezzük
+    function rescaleAmountSplit() {
+        if (splitMode !== "AMOUNT") return;
+        const participants = getSelectedParticipants();
+        let weights = participants.map(p => Number(splitValues[p]) || 0);
+        if (weights.every(w => w === 0)) weights = participants.map(() => 1);
+        const parts = distributeRounded(currentAmount(), weights, splitDecimals());
+        participants.forEach((p, i) => { splitValues[p] = parts[i]; });
+        lockedParticipants.clear();
+    }
+
+    function sliderMax() {
+        if (splitMode === "PERCENT") return 100;
+        if (splitMode === "AMOUNT") return currentAmount();
+        return Math.max(10, ...getSelectedParticipants().map(p => Math.ceil(Number(splitValues[p]) || 0)));
+    }
+
+    function unitLabel() {
+        if (splitMode === "PERCENT") return "%";
+        if (splitMode === "AMOUNT") return CURRENCIES[currentCurrency()].symbol;
+        return "rész";
+    }
+
+    // Résztvevőnként egy sor: avatar, név, csúszka, számmező, lakat, a rá eső összeg
+    function renderSplitRows() {
+        const container = document.getElementById("splitRows");
+        const show = splitMode !== "EQUAL" && getSelectedParticipants().length > 0;
+        container.classList.toggle("hidden", !show);
+        container.classList.toggle("flex", show);
+        if (!show) {
+            container.innerHTML = "";
+            return;
+        }
+
+        const disabled = splitMode === "AMOUNT" && currentAmount() === 0;
+        const step = splitMode === "SHARES" ? 1 : Math.pow(10, -splitDecimals());
+        const canLock = splitMode === "PERCENT" || splitMode === "AMOUNT";
+
+        container.innerHTML = getSelectedParticipants().map(p => {
+            const colors = avatarColor(p);
+            const locked = lockedParticipants.has(p);
+            return `
+                <div class="flex items-center gap-3" data-split-row="${escapeHtml(p)}">
+                    <span class="w-8 h-8 flex-shrink-0 rounded-full ${colors.bg} ${colors.text} flex items-center justify-center text-sm font-bold" title="${escapeHtml(p)}">${escapeHtml(p.charAt(0))}</span>
+                    <span class="w-16 text-sm font-medium text-slate-700 truncate">${escapeHtml(p)}</span>
+                    <input type="range" data-split-slider="${escapeHtml(p)}" min="0" max="${sliderMax()}" step="${step}" ${disabled ? "disabled" : ""}
+                           aria-label="${escapeHtml(p)} része" class="flex-1 min-w-0 accent-indigo-600 disabled:opacity-40">
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <input type="number" data-split-input="${escapeHtml(p)}" min="0" step="${splitMode === "SHARES" ? 0.5 : step}" ${disabled ? "disabled" : ""}
+                               aria-label="${escapeHtml(p)} része (${unitLabel()})" class="w-20 rounded-lg border border-slate-300 px-2 py-1 text-sm text-right bg-white">
+                        <span class="w-8 text-xs text-slate-500">${escapeHtml(unitLabel())}</span>
+                    </div>
+                    ${canLock ? `<button type="button" data-split-lock="${escapeHtml(p)}" aria-pressed="${locked}"
+                            title="${locked ? "Rögzítve: a többiek módosításakor nem változik" : "Rögzítés"}"
+                            class="w-8 h-8 flex-shrink-0 rounded-lg text-sm ${locked ? "bg-indigo-100 text-indigo-600" : "text-slate-400 hover:bg-slate-100"} transition-colors">${locked ? "🔒" : "🔓"}</button>` : ""}
+                    <span data-split-amount="${escapeHtml(p)}" class="w-20 flex-shrink-0 text-right text-xs font-semibold text-slate-500"></span>
+                </div>
+            `;
+        }).join('');
+        updateSplitRowValues(null);
+    }
+
+    // A sorok értékeinek frissítése (a most szerkesztett számmezőt nem írjuk felül, hogy ne ugráljon a kurzor)
+    function updateSplitRowValues(editingInput) {
+        const amounts = currentShareAmounts();
+        const currency = currentCurrency();
+        getSelectedParticipants().forEach(p => {
+            const row = document.querySelector(`[data-split-row="${CSS.escape(p)}"]`);
+            if (!row) return;
+            const value = Number(splitValues[p]) || 0;
+            const slider = row.querySelector("[data-split-slider]");
+            const input = row.querySelector("[data-split-input]");
+            slider.max = sliderMax();
+            slider.value = value;
+            if (input !== editingInput) input.value = value;
+            row.querySelector("[data-split-amount]").textContent = amounts[p] !== undefined && currentAmount() > 0
+                ? (splitMode === "AMOUNT" ? "" : `≈ ${formatMoney(amounts[p], currency)}`)
+                : "";
+        });
+    }
+
+    // Résztvevőnkénti összegek (a backend számításával megegyezően)
+    function currentShareAmounts() {
+        return computeShareAmounts(splitMode, getSelectedParticipants(), splitValues, currentAmount(), currentCurrency());
+    }
+
+    // Hibaüzenet, ha a megosztás nem menthető; egyébként null
+    function getSplitError() {
         const participants = getSelectedParticipants();
         if (participants.length === 0) {
             return "Válassz ki legalább egy résztvevőt!";
         }
-        if (participants.length === 1 && participants[0] === getEffectivePayer()) {
-            return "A fizetőn kívül legalább egy résztvevőt válassz ki!";
+        const decimals = splitDecimals();
+        if (splitMode === "PERCENT") {
+            const sum = sumValues(participants);
+            if (Math.abs(sum - 100) > 0.01) {
+                return `A százalékok összege 100% legyen (most: ${formatNumber(sum, decimals)}%)!`;
+            }
+        } else if (splitMode === "AMOUNT") {
+            if (currentAmount() === 0) return "Előbb add meg a kiadás összegét!";
+            const diff = currentAmount() - sumValues(participants);
+            if (Math.abs(diff) > Math.pow(10, -decimals) / 2) {
+                return diff > 0
+                    ? `Még ${formatMoney(diff, currentCurrency())} nincs szétosztva!`
+                    : `${formatMoney(-diff, currentCurrency())}-tal több van szétosztva, mint a kiadás összege!`;
+            }
+        } else if (splitMode === "SHARES") {
+            if (sumValues(participants) <= 0) return "Legalább egy résztvevőnek adj pozitív részarányt!";
+        }
+
+        // Ha csak maga a fizető kap részt, nem keletkezne tartozás
+        const withShare = splitMode === "EQUAL"
+            ? participants
+            : participants.filter(p => (Number(splitValues[p]) || 0) > 0);
+        if (withShare.length > 0 && withShare.every(p => p === getEffectivePayer())) {
+            return "A fizetőn kívül legalább egy résztvevőnek kell részt kapnia!";
         }
         return null;
     }
 
-    // Élő előnézet: létszám és egy főre eső összeg
+    function formatNumber(value, decimals) {
+        return Number(value).toLocaleString("hu-HU", { maximumFractionDigits: decimals });
+    }
+
+    // Élő összegzés a megosztás alatt
     function updateSplitSummary() {
         const summary = document.getElementById("splitSummary");
-
-        const error = getParticipantsError();
+        const error = getSplitError();
         if (error) {
             summary.textContent = error;
             summary.className = "text-xs font-medium text-rose-600";
             return;
         }
 
-        const count = getSelectedParticipants().length;
-        const label = count === allUsers.length ? `Mindenki egyenlően (${count} fő)` : `${count} fő`;
-        const amount = parseFloat(document.getElementById("amount").value);
-        const currency = document.getElementById("currency").value;
-        const shareText = !isNaN(amount) && amount > 0 ? ` • ${formatMoney(amount / count, currency)} / fő` : "";
-        summary.textContent = label + shareText;
+        const participants = getSelectedParticipants();
+        const amount = currentAmount();
+        const currency = currentCurrency();
+        let text;
+        if (splitMode === "EQUAL") {
+            const count = participants.length;
+            const label = count === allUsers.length ? `Mindenki egyenlően (${count} fő)` : `${count} fő, egyenlően`;
+            text = label + (amount ? ` • ${formatMoney(amount / count, currency)} / fő` : "");
+        } else if (splitMode === "PERCENT") {
+            text = "Összesen: 100% ✓";
+        } else if (splitMode === "AMOUNT") {
+            text = `Összesen: ${formatMoney(amount, currency)} ✓`;
+        } else {
+            const total = sumValues(participants);
+            text = `Összesen ${formatNumber(total, 2)} rész` + (amount ? ` • 1 rész = ${formatMoney(amount / total, currency)}` : "");
+        }
+        summary.textContent = text;
         summary.className = "text-xs font-medium text-slate-500";
     }
 
     function selectAllParticipants() {
         selectedParticipants = new Set(allUsers);
-        renderParticipantChips();
+        refreshSplit();
     }
+
+    // ---------- 3. Mentés ----------
 
     function showFormError(message) {
         const box = document.getElementById("expenseFormError");
@@ -510,6 +722,21 @@
             : (editingExpenseId ? "Módosítás mentése" : "Kiadás mentése");
     }
 
+    function setRecurringVisible(visible) {
+        document.getElementById("recurringField").classList.toggle("hidden", !visible);
+        if (!visible) {
+            document.getElementById("recurringCheckbox").checked = false;
+            toggleRecurringOptions();
+        }
+    }
+
+    function toggleRecurringOptions() {
+        const checked = document.getElementById("recurringCheckbox").checked;
+        const options = document.getElementById("recurringOptions");
+        options.classList.toggle("hidden", !checked);
+        options.classList.toggle("flex", checked);
+    }
+
     // Űrlap visszaállítása "új kiadás" módba
     function resetExpenseForm() {
         editingExpenseId = null;
@@ -519,11 +746,14 @@
         resetPayer();
         selectedCategory = "EGYEB";
         renderCategoryChips();
+        splitMode = "EQUAL";
+        selectedParticipants = new Set(allUsers);
         document.getElementById("expenseFormTitle").textContent = "Új kiadás hozzáadása";
         document.getElementById("cancelEditBtn").classList.add("hidden");
+        setRecurringVisible(true);
         clearFormError();
         setSaving(false);
-        selectAllParticipants();
+        refreshSplit();
     }
 
     // Meglévő kiadás betöltése az űrlapba szerkesztéshez
@@ -532,15 +762,26 @@
         document.getElementById("title").value = expense.title;
         document.getElementById("amount").value = expense.amount;
         document.getElementById("currency").value = expense.currency;
-        if (currentUser.admin) document.getElementById("payer").value = expense.payer;
+        if (canManage()) document.getElementById("payer").value = expense.payer;
         selectedCategory = expense.category;
         renderCategoryChips();
-        selectedParticipants = new Set((expense.participants || []).filter(p => allUsers.includes(p)));
+
+        const shares = expense.shares && expense.shares.length ? expense.shares : null;
+        const people = shares ? shares.map(s => s.person) : (expense.participants || []);
+        selectedParticipants = new Set(people.filter(p => allUsers.includes(p)));
+        splitMode = expense.splitType || "EQUAL";
+        splitValues = {};
+        lockedParticipants.clear();
+        if (shares && splitMode !== "EQUAL") {
+            shares.forEach(s => { splitValues[s.person] = s.inputValue ?? s.amount; });
+        }
+
         document.getElementById("expenseFormTitle").textContent = `Kiadás szerkesztése: ${expense.title}`;
         document.getElementById("cancelEditBtn").classList.remove("hidden");
+        setRecurringVisible(false);
         clearFormError();
         setSaving(false);
-        renderParticipantChips();
+        refreshSplit(splitMode === "EQUAL");
 
         document.getElementById("expenseFormSection").scrollIntoView({ behavior: "smooth", block: "start" });
         document.getElementById("title").focus({ preventScroll: true });
@@ -551,37 +792,34 @@
         clearFormError();
 
         const title = document.getElementById("title").value.trim();
-        const amount = parseFloat(document.getElementById("amount").value);
-
-        if (!title) {
-            showFormError("Add meg a kiadás megnevezését!");
-            return;
-        }
-        if (isNaN(amount) || amount <= 0) {
-            showFormError("Adj meg egy pozitív összeget!");
-            return;
-        }
-        const participantsError = getParticipantsError();
-        if (participantsError) {
-            showFormError(participantsError);
-            return;
-        }
+        const amount = currentAmount();
+        if (!title) return showFormError("Add meg a kiadás megnevezését!");
+        if (!amount) return showFormError("Adj meg egy pozitív összeget!");
+        const splitError = getSplitError();
+        if (splitError) return showFormError(splitError);
 
         const isEdit = editingExpenseId !== null;
+        const recurring = !isEdit && document.getElementById("recurringCheckbox").checked;
+        const participants = getSelectedParticipants();
         const payload = {
             title,
             amount,
-            currency: document.getElementById("currency").value,
+            currency: currentCurrency(),
             category: selectedCategory,
-            // A backend csak az admintól fogadja el; mindenki más saját maga a fizető
+            // A backend csak a tulajdonostól / admintól fogadja el; mindenki más saját maga a fizető
             payer: getEffectivePayer(),
-            participants: getSelectedParticipants()
+            participants,
+            splitType: splitMode,
+            splitValues: splitMode === "EQUAL" ? null : Object.fromEntries(participants.map(p => [p, Number(splitValues[p]) || 0]))
         };
+        if (recurring) payload.dayOfMonth = Number(document.getElementById("recurringDay").value);
+
+        const url = isEdit ? groupApi(groupId, `/expenses/${editingExpenseId}`)
+            : groupApi(groupId, recurring ? '/recurring' : '/expenses');
 
         setSaving(true);
         try {
-            const res = await apiJson(isEdit ? `/api/expenses/${editingExpenseId}` : '/api/expenses',
-                isEdit ? 'PUT' : 'POST', payload);
+            const res = await apiJson(url, isEdit ? 'PUT' : 'POST', payload);
             if (!res.ok) {
                 showFormError(await res.text());
                 setSaving(false);
@@ -589,7 +827,9 @@
             }
 
             resetExpenseForm();
-            showToast(isEdit ? `„${title}” módosítva` : `„${title}” elmentve`);
+            showToast(isEdit ? `„${title}” módosítva`
+                : recurring ? `„${title}” elmentve, ismétlődik minden hónap ${dayWithSuffix(payload.dayOfMonth)}`
+                    : `„${title}” elmentve`);
             await loadData();
         } catch (err) {
             showFormError("Nem sikerült kapcsolódni a szerverhez. Próbáld újra!");
@@ -597,17 +837,23 @@
         }
     }
 
-    // ---------- 3. Adatok betöltése és megjelenítése ----------
+    // ---------- 4. Adatok betöltése és megjelenítése ----------
 
     async function loadData() {
         try {
-            const [expRes, balRes] = await Promise.all([apiFetch('/api/expenses'), apiFetch('/api/balances')]);
+            const [expRes, balRes, recRes] = await Promise.all([
+                apiFetch(groupApi(groupId, '/expenses')),
+                apiFetch(groupApi(groupId, '/balances')),
+                apiFetch(groupApi(groupId, '/recurring'))
+            ]);
             allExpensesCache = await expRes.json();
             balancesCache = await balRes.json();
+            recurringCache = await recRes.json();
 
             // Főoldalon csak a legutóbbi 5 kiadást mutatjuk
             renderRecentExpenses(allExpensesCache.slice(0, 5));
             renderBalances(balancesCache);
+            renderRecurring(recurringCache);
             if (isAllExpensesModalOpen()) filterAndRenderModalExpenses();
         } catch (err) {
             console.error("Hiba az adatok lekérésekor:", err);
@@ -627,6 +873,7 @@
             const colors = avatarColor(e.payer);
             const category = getCategory(e.category);
             const date = formatDate(e.createdAt);
+            const recurringMark = e.recurringExpenseId ? `<span title="Havonta ismétlődő kiadás">🔁</span> ` : "";
             return `
                 <div class="px-6 py-4 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
                     <div class="flex items-center gap-4 min-w-0">
@@ -634,7 +881,7 @@
                             ${escapeHtml(e.payer.charAt(0))}
                         </div>
                         <div class="min-w-0">
-                            <p class="text-sm font-bold text-slate-800 truncate" title="${escapeHtml(category.label)}">${category.icon} ${escapeHtml(e.title)}</p>
+                            <p class="text-sm font-bold text-slate-800 truncate" title="${escapeHtml(category.label)}">${recurringMark}${category.icon} ${escapeHtml(e.title)}</p>
                             <p class="text-xs text-slate-500">Fizette: ${escapeHtml(e.payer)}${date ? ` • ${escapeHtml(date)}` : ""}</p>
                         </div>
                     </div>
@@ -644,6 +891,53 @@
                 </div>
             `;
         }).join('');
+    }
+
+    // Ismétlődő kiadások listája; leállítani a létrehozó, a tulajdonos vagy az admin tudja
+    function renderRecurring(rules) {
+        const container = document.getElementById("recurringList");
+        if (rules.length === 0) {
+            container.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm">Nincs ismétlődő kiadás. Új kiadásnál pipáld be a „Havonta ismétlődik” opciót!</div>`;
+            return;
+        }
+        container.innerHTML = rules.map(r => {
+            const category = getCategory(r.category);
+            const canStop = canManage() || r.createdBy === currentUser.name;
+            const next = new Date(`${r.nextRunDate}T00:00:00`).toLocaleDateString("hu-HU", { month: "short", day: "numeric" });
+            const status = r.active
+                ? `Minden hónap ${dayWithSuffix(r.dayOfMonth)} • következő: ${next}`
+                : "Leállítva (a fizető vagy egy résztvevő kilépett)";
+            return `
+                <div class="px-6 py-4 flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="text-sm font-bold text-slate-800 truncate">${category.icon} ${escapeHtml(r.title)}</p>
+                        <p class="text-xs ${r.active ? "text-slate-500" : "text-rose-600"}">${escapeHtml(status)}</p>
+                        <p class="text-xs text-slate-500">Fizeti: ${escapeHtml(r.payer)}</p>
+                    </div>
+                    <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                        <p class="text-sm font-bold text-slate-800 whitespace-nowrap">${formatMoney(r.amount, r.currency)}</p>
+                        ${canStop ? `<button type="button" data-stop-recurring="${r.id}" class="text-xs font-semibold text-rose-600 hover:underline">Leállítás</button>` : ""}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function stopRecurring(rule) {
+        const confirmed = await showConfirm({
+            title: "Ismétlődő kiadás leállítása",
+            message: `Leállítod a(z) „${rule.title}” ismétlődését? A már létrejött kiadások megmaradnak.`,
+            confirmText: "Leállítás",
+            danger: true
+        });
+        if (!confirmed) return;
+        const res = await apiFetch(groupApi(groupId, `/recurring/${rule.id}`), { method: 'DELETE' });
+        if (res.ok) {
+            showToast(`„${rule.title}” ismétlődése leállítva`);
+        } else {
+            showToast(await res.text(), "error");
+        }
+        await loadData();
     }
 
     // Az egyenlegek pénznemenként érkeznek; kártyánként egy adós-hitelező párt mutatunk
@@ -732,9 +1026,9 @@
                 sentence = `${escapeHtml(pair.debtor)} tartozik <span class="font-bold text-slate-800">${escapeHtml(toDative(pair.creditor))}</span>`;
             }
 
-            // Rendezettnek csak a hitelező jelölheti (ő tudja, hogy megkapta), illetve az admin
+            // Rendezettnek csak a hitelező jelölheti (ő tudja, hogy megkapta), illetve a tulajdonos / admin
             let settleButton = "";
-            if (pair.creditor === me || currentUser.admin) {
+            if (pair.creditor === me || canManage()) {
                 const label = pair.creditor === me ? "Megkaptam" : "Rendezve";
                 settleButton = `
                     <button type="button" data-settle-index="${index}"
@@ -773,7 +1067,7 @@
         });
         if (!currency) return;
 
-        const res = await apiJson('/api/settlements', 'POST', { debtor: pair.debtor, creditor: pair.creditor, currency });
+        const res = await apiJson(groupApi(groupId, '/settlements'), 'POST', { debtor: pair.debtor, creditor: pair.creditor, currency });
         if (res.ok) {
             showToast(`${pair.debtor} → ${pair.creditor}: ${formatMoney(pair.amounts[currency], currency)} rendezve`);
         } else {
@@ -782,7 +1076,7 @@
         await loadData();
     }
 
-    // ---------- 4. Összes kiadás modal: szűrés, szerkesztés, törlés ----------
+    // ---------- 5. Összes kiadás modal: szűrés, szerkesztés, törlés ----------
 
     function openAllExpensesModal() {
         document.getElementById("allExpensesModal").classList.remove("hidden");
@@ -797,6 +1091,25 @@
 
     function isAllExpensesModalOpen() {
         return !document.getElementById("allExpensesModal").classList.contains("hidden");
+    }
+
+    // Kinek mennyi jut: egyéni megosztásnál a tárolt részekből, különben egyenlően
+    function shareDescription(e) {
+        const shares = e.shares && e.shares.length ? e.shares : null;
+        if (!shares || e.splitType === "EQUAL") {
+            const count = e.participants && e.participants.length ? e.participants.length : allUsers.length;
+            const names = e.participants ? escapeHtml(e.participants.join(', ')) : 'Mindenki';
+            return {
+                text: `Megosztva (${count} fő): <span class="text-slate-700">${names}</span>`,
+                perPerson: `${formatMoney(e.amount / count, e.currency)} / fő`
+            };
+        }
+        const modeLabel = { PERCENT: "százalék szerint", AMOUNT: "összeg szerint", SHARES: "részarány szerint" }[e.splitType] || "";
+        const parts = shares.map(s => `${escapeHtml(s.person)} ${formatMoney(s.amount, e.currency)}`).join(" · ");
+        return {
+            text: `Megosztva (${shares.length} fő, ${modeLabel}): <span class="text-slate-700">${parts}</span>`,
+            perPerson: SPLIT_MODES[e.splitType]?.label || ""
+        };
     }
 
     function filterAndRenderModalExpenses() {
@@ -830,13 +1143,14 @@
         container.innerHTML = filtered.map(e => {
             const colors = avatarColor(e.payer);
             const category = getCategory(e.category);
-            const participantsCount = e.participants && e.participants.length ? e.participants.length : allUsers.length;
-            const participantsList = e.participants ? escapeHtml(e.participants.join(', ')) : 'Mindenki';
+            const share = shareDescription(e);
             const date = formatDate(e.createdAt);
-            // Ha más rögzítette, mint aki fizetett (admin rögzítés), azt is jelezzük
+            // Ha más rögzítette, mint aki fizetett (tulajdonosi rögzítés), azt is jelezzük
             const recordedBy = e.createdBy && e.createdBy !== e.payer
                 ? `<span class="text-xs text-slate-400">•</span><span class="text-xs text-slate-500">Rögzítette: ${escapeHtml(e.createdBy)}</span>`
                 : "";
+            const recurringMark = e.recurringExpenseId
+                ? `<span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 font-semibold text-indigo-700">🔁 Ismétlődő</span>` : "";
 
             const actions = canModify(e) ? `
                 <div class="flex items-center gap-1">
@@ -860,12 +1174,11 @@
                             <h4 class="text-base font-bold text-slate-800 leading-tight">${escapeHtml(e.title)}</h4>
                             <div class="flex flex-wrap items-center gap-2 mt-1.5">
                                 <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 font-semibold text-slate-600">${category.icon} ${escapeHtml(category.label)}</span>
+                                ${recurringMark}
                                 <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 font-semibold text-slate-600">
                                     Fizette: <strong class="text-slate-800">${escapeHtml(e.payer)}</strong>
                                 </span>
-                                <span class="text-xs text-slate-500">
-                                    Megosztva (${participantsCount} fő): <span class="text-slate-700">${participantsList}</span>
-                                </span>
+                                <span class="text-xs text-slate-500">${share.text}</span>
                                 ${date ? `<span class="text-xs text-slate-400">•</span><span class="text-xs text-slate-500">${escapeHtml(date)}</span>` : ""}
                                 ${recordedBy}
                             </div>
@@ -875,7 +1188,7 @@
                     <div class="flex items-center justify-between sm:justify-end gap-4 flex-shrink-0">
                         <div class="text-left sm:text-right">
                             <p class="text-base font-bold text-slate-900 whitespace-nowrap">${formatMoney(e.amount, e.currency)}</p>
-                            <p class="text-xs text-indigo-600 font-medium whitespace-nowrap">${formatMoney(e.amount / participantsCount, e.currency)} / fő</p>
+                            <p class="text-xs text-indigo-600 font-medium whitespace-nowrap">${escapeHtml(share.perPerson)}</p>
                         </div>
                         ${actions}
                     </div>
@@ -893,7 +1206,7 @@
         });
         if (!confirmed) return;
 
-        const res = await apiFetch(`/api/expenses/${expense.id}`, { method: 'DELETE' });
+        const res = await apiFetch(groupApi(groupId, `/expenses/${expense.id}`), { method: 'DELETE' });
         if (res.ok) {
             // Ha épp ezt szerkesztettük, az űrlap visszaáll új kiadás módba
             if (editingExpenseId === expense.id) resetExpenseForm();
@@ -904,38 +1217,42 @@
         await loadData();
     }
 
-    // Admin: minden kiadás, tartozás és rendezés törlése (kétlépcsős megerősítéssel)
+    // Tulajdonos / admin: a csoport minden kiadásának, tartozásának és rendezésének törlése
     async function deleteAllData() {
         const confirmed = await showConfirm({
-            title: "Összes adat törlése",
-            message: "Ez törli az összes kiadást, tartozást és rendezést. A felhasználói fiókok megmaradnak. A művelet nem visszavonható!",
+            title: "Csoport összes adatának törlése",
+            message: `Ez törli a(z) „${group.name}” csoport összes kiadását, tartozását, rendezését és ismétlődő kiadását. A tagok megmaradnak. A művelet nem visszavonható!`,
             confirmText: "Végleges törlés",
             danger: true,
             requireText: "TÖRLÉS"
         });
         if (!confirmed) return;
 
-        const res = await apiFetch('/api/admin/data', { method: 'DELETE' });
+        const res = await apiFetch(groupApi(groupId, '/data'), { method: 'DELETE' });
         if (res.ok) {
             resetExpenseForm();
-            showToast("Minden kiadás és tartozás törölve");
+            showToast("A csoport minden kiadása és tartozása törölve");
         } else {
             showToast(await res.text(), "error");
         }
         await loadData();
     }
 
-    // ---------- 5. Eseményfigyelők ----------
+    // ---------- 6. Eseményfigyelők ----------
 
     document.addEventListener("DOMContentLoaded", async () => {
+        groupId = requireGroupId();
+        if (!groupId) return;
         currentUser = await loadCurrentUser();
         if (!currentUser) return;
-        await loadUsers();
+        group = await loadGroup(groupId);
+        if (!group) return;
+        await loadMembers();
 
         initFormOptions();
         renderCategoryChips();
-        renderParticipantChips();
-        document.getElementById("deleteAllDataBtn").classList.toggle("hidden", !currentUser.admin);
+        refreshSplit();
+        document.getElementById("deleteAllDataBtn").classList.toggle("hidden", !canManage());
         loadData();
 
         // Kategória választása
@@ -946,7 +1263,7 @@
             renderCategoryChips();
         });
 
-        // Résztvevő-chipek ki/bekapcsolása
+        // Résztvevő-chipek ki/bekapcsolása (a megosztás alapértékei ilyenkor újraszámolódnak)
         document.getElementById("participantChips").addEventListener("click", (e) => {
             const chip = e.target.closest("button[data-user]");
             if (!chip) return;
@@ -956,14 +1273,65 @@
             } else {
                 selectedParticipants.add(user);
             }
-            renderParticipantChips();
+            refreshSplit();
         });
         document.getElementById("selectAllParticipantsBtn").addEventListener("click", selectAllParticipants);
 
-        // Előnézet frissítése összeg, pénznem vagy fizető változásakor
-        document.getElementById("amount").addEventListener("input", updateSplitSummary);
-        document.getElementById("currency").addEventListener("change", updateSplitSummary);
+        // Megosztási mód váltása
+        document.getElementById("splitModeButtons").addEventListener("click", (e) => {
+            const btn = e.target.closest("button[data-split-mode]");
+            if (!btn || btn.dataset.splitMode === splitMode) return;
+            splitMode = btn.dataset.splitMode;
+            refreshSplit();
+        });
+
+        // Csúszkák és számmezők: értékmódosítás, a többiek automatikus igazításával
+        const splitRows = document.getElementById("splitRows");
+        splitRows.addEventListener("input", (e) => {
+            const person = e.target.dataset.splitSlider ?? e.target.dataset.splitInput;
+            if (person === undefined) return;
+            setSplitValue(person, e.target.value);
+            updateSplitRowValues(e.target.dataset.splitInput !== undefined ? e.target : null);
+            updateSplitSummary();
+        });
+        // A számmezőből kilépve a kerekített érték is megjelenik
+        splitRows.addEventListener("change", (e) => {
+            if (e.target.dataset.splitInput !== undefined) updateSplitRowValues(null);
+        });
+        splitRows.addEventListener("click", (e) => {
+            const lock = e.target.closest("button[data-split-lock]");
+            if (!lock) return;
+            const person = lock.dataset.splitLock;
+            if (lockedParticipants.has(person)) lockedParticipants.delete(person);
+            else lockedParticipants.add(person);
+            renderSplitRows();
+        });
+
+        // Összeg / pénznem / fizető változásakor az előnézet (és összeg módban a részek) frissül
+        document.getElementById("amount").addEventListener("input", () => {
+            if (splitMode === "AMOUNT") {
+                rescaleAmountSplit();
+                renderSplitRows();
+            } else {
+                updateSplitRowValues(null);
+            }
+            updateSplitSummary();
+        });
+        document.getElementById("currency").addEventListener("change", () => {
+            if (splitMode === "AMOUNT") rescaleAmountSplit();
+            renderSplitRows();
+            updateSplitSummary();
+        });
         document.getElementById("payer").addEventListener("change", updateSplitSummary);
+
+        // Ismétlődő kiadás
+        document.getElementById("recurringCheckbox").addEventListener("change", toggleRecurringOptions);
+        document.getElementById("recurringList").addEventListener("click", (e) => {
+            const btn = e.target.closest("button[data-stop-recurring]");
+            if (!btn) return;
+            const rule = recurringCache.find(r => r.id === Number(btn.dataset.stopRecurring));
+            if (rule) stopRecurring(rule);
+        });
 
         // Mentés (Enter is működik) és szerkesztés megszakítása
         document.getElementById("expenseForm").addEventListener("submit", submitExpense);
@@ -994,7 +1362,7 @@
             }
         });
 
-        // Admin: összes adat törlése
+        // Tulajdonos / admin: a csoport összes adatának törlése
         document.getElementById("deleteAllDataBtn").addEventListener("click", deleteAllData);
 
         // Modal bezáró gombok
@@ -1006,24 +1374,9 @@
             if (e.target.id === "allExpensesModal") closeAllExpensesModal();
         });
 
-        // Megerősítő ablak gombjai és háttérkattintás
-        document.getElementById("confirmOkBtn").addEventListener("click", () => closeConfirm(true));
-        document.getElementById("confirmCancelBtn").addEventListener("click", () => closeConfirm(false));
-        document.getElementById("confirmModal").addEventListener("click", (e) => {
-            if (e.target.id === "confirmModal") closeConfirm(false);
-        });
-        document.getElementById("confirmTextInput").addEventListener("keydown", (e) => {
-            if (e.key === "Enter" && !document.getElementById("confirmOkBtn").disabled) closeConfirm(true);
-        });
-
-        // ESC: először a megerősítő ablakot, aztán a kiadás-listát zárja be
+        // ESC: a kiadás-lista bezárása (a megerősítő ablakot a common.js zárja be előbb)
         document.addEventListener("keydown", (e) => {
-            if (e.key !== "Escape") return;
-            if (isConfirmOpen()) {
-                closeConfirm(false);
-            } else {
-                closeAllExpensesModal();
-            }
+            if (e.key === "Escape") closeAllExpensesModal();
         });
 
         // Szűrő és kereső bemenetek figyelése

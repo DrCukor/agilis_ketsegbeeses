@@ -1,5 +1,6 @@
 package hu.unideb.inf.szoftverfejlesztes.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,6 +19,12 @@ public class Settlement {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // Melyik csoportban történt a rendezés (a JSON-ban nem küldjük ki)
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "group_id")
+    private ExpenseGroup group;
 
     @Column(nullable = false)
     private String debtor;
