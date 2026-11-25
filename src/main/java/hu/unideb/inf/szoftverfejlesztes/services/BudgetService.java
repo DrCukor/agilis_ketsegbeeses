@@ -33,6 +33,8 @@ import java.util.NoSuchElementException;
 @Service
 public class BudgetService {
 
+    private static final int MAX_TITLE_LENGTH = 100;
+
     private final ExpenseRepository expenseRepository;
     private final DebtRepository debtRepository;
     private final SettlementRepository settlementRepository;
@@ -285,6 +287,10 @@ public class BudgetService {
     public PreparedExpense prepareExpense(GroupAccess access, ExpenseInput input) {
         if (input.title() == null || input.title().isBlank()) {
             throw new IllegalArgumentException("A megnevezés nem lehet üres!");
+        }
+        // Túl hosszú szövegnél az adatbázis hibát dobna (500), ezért előre, érthető üzenettel jelezzük
+        if (input.title().trim().length() > MAX_TITLE_LENGTH) {
+            throw new IllegalArgumentException("A megnevezés legfeljebb " + MAX_TITLE_LENGTH + " karakter lehet!");
         }
         Currency currency = Currency.parse(input.currency());
         if (input.amount() == null || input.amount() <= 0) {

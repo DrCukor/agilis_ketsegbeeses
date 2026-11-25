@@ -97,11 +97,11 @@
                 <form id="registerForm" class="hidden flex-col gap-5" novalidate>
                     <div class="flex flex-col gap-1.5">
                         <label for="registerName" class="text-sm font-medium text-slate-700">Név</label>
-                        <input type="text" id="registerName" autocomplete="name" placeholder="pl. Kiss Pista" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all duration-200">
+                        <input type="text" id="registerName" maxlength="40" autocomplete="name" placeholder="pl. Kiss Pista" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all duration-200">
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label for="registerEmail" class="text-sm font-medium text-slate-700">Email cím</label>
-                        <input type="email" id="registerEmail" autocomplete="email" placeholder="pl. kisspista12@gmail.com" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all duration-200">
+                        <input type="email" id="registerEmail" maxlength="100" autocomplete="email" placeholder="pl. kisspista12@gmail.com" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all duration-200">
                         <p id="registerEmailHint" class="hidden text-xs font-medium text-rose-600">Érvénytelen email cím! Helyes formátum: nev@domain.hu</p>
                     </div>
                     <div class="flex flex-col gap-1.5">
