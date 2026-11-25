@@ -33,14 +33,22 @@ function escapeHtml(value) {
         .replace(/'/g, "&#39;");
 }
 
-// Összeg magyar formátumban a pénznem jelével, pl. "12 000 Ft", "36,5 €"
+// Összeg magyar formátumban a pénznem jelével, pl. "12 000 Ft", "36,5 €".
+// A szám és a jel között nem törhető szóköz van, így a "Ft" sosem kerül külön sorba.
 function formatMoney(value, currency = "HUF") {
     const info = CURRENCIES[currency] || CURRENCIES.HUF;
     const number = Number(value).toLocaleString("hu-HU", {
         minimumFractionDigits: 0,
         maximumFractionDigits: info.decimals
     });
-    return `${number} ${info.symbol}`;
+    return `${number} ${info.symbol}`;
+}
+
+// Rövidített összeg diagram-tengelyekhez, pl. "1,6 M Ft", "250 E Ft"
+function formatMoneyCompact(value, currency = "HUF") {
+    const info = CURRENCIES[currency] || CURRENCIES.HUF;
+    const number = Number(value).toLocaleString("hu-HU", { notation: "compact", maximumFractionDigits: 1 });
+    return `${number} ${info.symbol}`;
 }
 
 // Több pénznemű összeg felsorolva, pl. { HUF: 2500, EUR: 36 } -> "2 500 Ft és 36 €"
@@ -281,6 +289,72 @@ async function apiJson(url, method, body) {
     });
 }
 
+// ---------- Közös fejléc ----------
+
+const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 flex-shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`;
+
+// A fejléc minden bejelentkezés utáni oldalon ugyanaz. activeTab: "expenses" / "history" / "stats",
+// vagy null a csoportválasztó oldalon (ott nincs csoport-link és fülek).
+// Mobilon a fülek külön sorba kerülnek, a kijelentkezés csak ikon. Az oldal szkriptjének elején kell
+// meghívni (a DOMContentLoaded előtt), hogy a téma-csúszkát a theme.js megtalálja.
+function renderHeader(activeTab = null) {
+    const tabs = [
+        ["expenses", "/", "Kiadások"],
+        ["history", "/history.html", "Rendezések"],
+        ["stats", "/stats.html", "Statisztika"]
+    ];
+
+    const brand = activeTab
+        ? `<a href="/groups.html" class="flex items-center gap-2 min-w-0" title="Vissza a csoportokhoz">
+               ${LOGO_SVG}
+               <span class="min-w-0 leading-tight">
+                   <span class="block text-xs font-medium text-slate-500">← Csoportok</span>
+                   <span id="currentGroupName" class="block text-sm font-bold text-slate-900 truncate max-w-[11rem] lg:max-w-[14rem]"></span>
+               </span>
+           </a>`
+        : `<a href="/groups.html" class="flex items-center gap-2">
+               ${LOGO_SVG}
+               <span class="text-xl font-bold text-slate-900 tracking-tight">KözösKassza</span>
+           </a>`;
+
+    const nav = activeTab
+        ? `<nav class="order-3 w-full md:order-none md:w-auto md:mr-auto flex items-center gap-1 text-sm font-medium overflow-x-auto">
+               ${tabs.map(([key, href, label]) => key === activeTab
+                   ? `<a data-group-link="${href}" href="${href}" aria-current="page" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800 whitespace-nowrap">${label}</a>`
+                   : `<a data-group-link="${href}" href="${href}" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors whitespace-nowrap">${label}</a>`
+               ).join("")}
+           </nav>`
+        : "";
+
+    const header = document.getElementById("appHeader");
+    header.className = "bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10";
+    header.innerHTML = `
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-2 md:py-0 md:h-16 flex flex-wrap md:flex-nowrap items-center gap-x-4 lg:gap-x-6 gap-y-2">
+            ${brand}
+            ${nav}
+            <div class="order-2 md:order-none ml-auto flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                <span class="hidden lg:flex items-center gap-1 text-xs font-medium text-slate-500" title="Automatikus kijelentkeztetésig hátralévő idő">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span id="sessionCountdown" class="tabular-nums"></span>
+                </span>
+                <button type="button" class="theme-switch" data-theme-toggle role="switch" aria-checked="false" aria-label="Sötét mód" title="Sötét mód">
+                    <span class="theme-switch-knob">
+                        <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                        <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    </span>
+                </button>
+                <div id="currentUserAvatar" class="h-8 w-8 flex-shrink-0 rounded-full bg-indigo-100 flex items-center justify-center text-primary font-bold"></div>
+                <span id="currentUserName" class="hidden lg:inline-block max-w-[9rem] truncate font-medium text-sm text-slate-600"></span>
+                <button type="button" id="logoutBtn" title="Kijelentkezés" aria-label="Kijelentkezés"
+                        class="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg px-2 sm:px-3 py-1.5 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span class="hidden sm:inline">Kijelentkezés</span>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
 // ---------- Csoportok ----------
 
 // Az aktuális csoport azonosítója az URL-ből (?csoport=12); ha nincs, a csoportválasztó oldalra visz
@@ -358,8 +432,12 @@ async function loadCurrentUser() {
 
     const avatar = document.getElementById("currentUserAvatar");
     const nameLabel = document.getElementById("currentUserName");
-    if (avatar) avatar.textContent = user.name.charAt(0).toUpperCase();
-    if (nameLabel) nameLabel.textContent = user.admin ? `${user.name} (admin)` : user.name;
+    const displayName = user.admin ? `${user.name} (admin)` : user.name;
+    if (avatar) {
+        avatar.textContent = user.name.charAt(0).toUpperCase();
+        avatar.title = displayName; // kisebb képernyőn a név nem látszik, az avatar fölé húzva igen
+    }
+    if (nameLabel) nameLabel.textContent = displayName;
 
     const logoutBtn = document.getElementById("logoutBtn");
     if (logoutBtn) logoutBtn.addEventListener("click", () => logout());

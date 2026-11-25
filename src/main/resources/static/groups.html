@@ -38,35 +38,8 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
 
-    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-            <div class="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                </svg>
-                <h1 class="text-xl font-bold text-slate-900 tracking-tight">KözösKassza</h1>
-            </div>
-            <div class="flex items-center gap-3 sm:gap-4">
-                <!-- Munkamenet visszaszámláló -->
-                <span class="hidden md:flex items-center gap-1 text-xs font-medium text-slate-500" title="Automatikus kijelentkeztetésig hátralévő idő">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    <span id="sessionCountdown"></span>
-                </span>
-                <!-- Sötét mód kapcsoló (csúszka) -->
-                <button type="button" class="theme-switch" data-theme-toggle role="switch" aria-checked="false" aria-label="Sötét mód" title="Sötét mód">
-                    <span class="theme-switch-knob">
-                        <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-                        <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                    </span>
-                </button>
-                <div id="currentUserAvatar" class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-primary font-bold"></div>
-                <span id="currentUserName" class="hidden sm:inline-block font-medium text-sm text-slate-600"></span>
-                <button type="button" id="logoutBtn" class="text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg px-3 py-1.5 transition-colors">
-                    Kijelentkezés
-                </button>
-            </div>
-        </div>
-    </header>
+    <!-- Közös fejléc (common.js renderHeader) -->
+    <header id="appHeader"></header>
 
     <main class="flex-grow max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col gap-8">
 
@@ -139,6 +112,9 @@
     </div>
 
 <script>
+    // Közös fejléc (a DOMContentLoaded előtt, hogy a téma-csúszka működjön)
+    renderHeader(null);
+
     let currentUser = null;
     let groups = [];
     let formMode = "create"; // "create" vagy "join"

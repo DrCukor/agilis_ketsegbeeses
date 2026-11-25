@@ -17,6 +17,8 @@ public class AuthService {
     // Ékezetes betűk is megengedettek (pl. Ádám@gmail.com)
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[\\p{L}\\p{N}._%+-]+@[\\p{L}\\p{N}-]+(\\.[\\p{L}\\p{N}-]+)*\\.\\p{L}{2,}$");
+    private static final int MAX_NAME_LENGTH = 40;
+    private static final int MAX_EMAIL_LENGTH = 100;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -34,6 +36,13 @@ public class AuthService {
         }
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("A név nem lehet üres!");
+        }
+        // A név mindenhol megjelenik (kártyák, chipek), ezért nem lehet túl hosszú
+        if (name.trim().length() > MAX_NAME_LENGTH) {
+            throw new IllegalArgumentException("A név legfeljebb " + MAX_NAME_LENGTH + " karakter lehet!");
+        }
+        if (email.trim().length() > MAX_EMAIL_LENGTH) {
+            throw new IllegalArgumentException("Az email cím legfeljebb " + MAX_EMAIL_LENGTH + " karakter lehet!");
         }
         // Bármilyen jelszó elfogadott, csak üres nem lehet
         if (password == null || password.isEmpty()) {

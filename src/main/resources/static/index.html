@@ -40,57 +40,19 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
 
-    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-            <div class="flex items-center gap-4 lg:gap-6 min-w-0">
-                <a href="/groups.html" class="flex items-center gap-2 min-w-0" title="Vissza a csoportokhoz">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 flex-shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
-                    <div class="min-w-0 leading-tight">
-                        <p class="text-xs font-medium text-slate-500">← Csoportok</p>
-                        <p id="currentGroupName" class="text-sm font-bold text-slate-900 truncate max-w-[10rem] sm:max-w-[14rem]"></p>
-                    </div>
-                </a>
-                <!-- Navigáció (a hivatkozások a csoportra mutatnak) -->
-                <nav class="flex items-center gap-1 text-sm font-medium">
-                    <a data-group-link="/" href="/" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800" aria-current="page">Kiadások</a>
-                    <a data-group-link="/history.html" href="/history.html" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">Rendezések</a>
-                    <a data-group-link="/stats.html" href="/stats.html" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">Statisztika</a>
-                </nav>
-            </div>
-            <div class="flex items-center gap-3 sm:gap-4">
-                <!-- Munkamenet visszaszámláló -->
-                <span class="hidden md:flex items-center gap-1 text-xs font-medium text-slate-500" title="Automatikus kijelentkeztetésig hátralévő idő">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    <span id="sessionCountdown"></span>
-                </span>
-                <!-- Sötét mód kapcsoló (csúszka) -->
-                <button type="button" class="theme-switch" data-theme-toggle role="switch" aria-checked="false" aria-label="Sötét mód" title="Sötét mód">
-                    <span class="theme-switch-knob">
-                        <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-                        <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                    </span>
-                </button>
-                <div id="currentUserAvatar" class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-primary font-bold"></div>
-                <span id="currentUserName" class="hidden sm:inline-block font-medium text-sm text-slate-600"></span>
-                <button type="button" id="logoutBtn" class="text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg px-3 py-1.5 transition-colors">
-                    Kijelentkezés
-                </button>
-            </div>
-        </div>
-    </header>
+    <!-- Közös fejléc (common.js renderHeader) -->
+    <header id="appHeader"></header>
 
     <main class="flex-grow max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         <!--
           Reszponzív Grid:
           - Mobilon 1 oszlop (egymás alatt)
-          - Nagy kijelzőn 3 oszlop (2 oszlop balra az űrlapnak/egyenlegeknek, 1 jobbra a listáknak)
+          - Nagy kijelzőn 3:2 (lg), illetve 2:1 (xl) arányban: balra az űrlap és az egyenlegek, jobbra a listák
         -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-5 xl:grid-cols-3 gap-6 xl:gap-8">
 
             <!-- Bal oldali oszlop: Új kiadás és Egyenlegek -->
-            <div class="lg:col-span-2 flex flex-col gap-8">
+            <div class="lg:col-span-3 xl:col-span-2 flex flex-col gap-6 xl:gap-8 min-w-0">
 
                 <section id="expenseFormSection" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                     <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
@@ -104,7 +66,7 @@
                         <!-- Megnevezés -->
                         <div class="flex flex-col gap-1.5">
                             <label for="title" class="text-sm font-medium text-slate-700">Megnevezés</label>
-                            <input type="text" id="title" placeholder="pl. Heti bevásárlás, Vonatjegy..." class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all duration-200">
+                            <input type="text" id="title" maxlength="100" placeholder="pl. Heti bevásárlás, Vonatjegy..." class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm transition-all duration-200">
                         </div>
 
                         <div class="flex flex-col sm:flex-row gap-5">
@@ -186,7 +148,9 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
                             Egyenlegek
                         </h2>
-                        <span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full">Optimalizálva</span>
+                        <!-- Csak akkor zöld, ha a bejelentkezett felhasználónak nincs tartozása (renderBalanceBadge) -->
+                        <span id="balanceBadge" title="A tartozások a lehető legkevesebb utalásra egyszerűsítve"
+                              class="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-1 rounded-full whitespace-nowrap">Optimalizálva</span>
                     </div>
 
                     <div class="p-6 flex flex-col gap-4">
@@ -198,7 +162,7 @@
             </div>
 
             <!-- Jobb oldali oszlop: Listák -->
-            <div class="lg:col-span-1 flex flex-col gap-8">
+            <div class="lg:col-span-2 xl:col-span-1 flex flex-col gap-6 xl:gap-8 min-w-0">
                 <section class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                     <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
                         <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
@@ -235,19 +199,19 @@
         <div class="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden transition-all">
 
             <!-- Modal Fejléc -->
-            <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+            <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/50">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 flex-shrink-0 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
                         <svg class="w-5 h-5 stroke-current fill-none" viewBox="0 0 24 24" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
                     </div>
-                    <div>
-                        <h3 class="text-lg font-bold text-slate-800">Összes rögzített kiadás</h3>
+                    <div class="min-w-0">
+                        <h3 class="text-lg font-bold text-slate-800 truncate">Összes rögzített kiadás</h3>
                         <p class="text-xs text-slate-500" id="modalExpensesCount">0 tranzakció rögzítve</p>
                     </div>
                 </div>
-                <button type="button" id="closeModalBtn" aria-label="Bezárás" class="w-9 h-9 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors">
+                <button type="button" id="closeModalBtn" aria-label="Bezárás" class="w-9 h-9 flex-shrink-0 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -255,9 +219,9 @@
             </div>
 
             <!-- Kereső és szűrősáv + Statisztika -->
-            <div class="p-6 border-b border-slate-100 bg-white grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+            <div class="p-4 sm:p-6 border-b border-slate-100 bg-white grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 items-center">
                 <!-- Szöveges kereső -->
-                <div class="relative">
+                <div class="relative col-span-2 md:col-span-1">
                     <input type="text" id="modalSearchInput" placeholder="Keresés tétel nevére..."
                            class="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
                     <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -266,18 +230,18 @@
                 </div>
 
                 <!-- Szűrés fizető szerint -->
-                <select id="modalFilterPayer" aria-label="Szűrés fizető szerint" class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700">
+                <select id="modalFilterPayer" aria-label="Szűrés fizető szerint" class="w-full min-w-0 px-2 sm:px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700">
                     <option value="ALL">Minden fizető</option>
                 </select>
 
                 <!-- Szűrés kategória szerint -->
-                <select id="modalFilterCategory" aria-label="Szűrés kategória szerint" class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700">
+                <select id="modalFilterCategory" aria-label="Szűrés kategória szerint" class="w-full min-w-0 px-2 sm:px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-700">
                     <option value="ALL">Minden kategória</option>
                 </select>
 
                 <!-- Összesített összeg banner -->
-                <div class="bg-indigo-50/60 border border-indigo-100/80 rounded-xl px-4 py-2 flex items-center justify-between gap-2">
-                    <span class="text-xs font-semibold text-indigo-700">Összesen:</span>
+                <div class="col-span-2 md:col-span-1 bg-indigo-50/60 border border-indigo-100/80 rounded-xl px-4 py-2 flex items-center justify-between gap-2">
+                    <span class="text-xs font-semibold text-indigo-700 flex-shrink-0">Összesen:</span>
                     <span id="modalTotalFilteredAmount" class="text-sm font-bold text-indigo-900 text-right">0 Ft</span>
                 </div>
             </div>
@@ -288,10 +252,11 @@
             </div>
 
             <!-- Modal Lábléc -->
-            <div class="px-6 py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-3">
+            <div class="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-3">
                 <!-- Csak a csoport tulajdonosának / adminnak látszik -->
-                <button type="button" id="deleteAllDataBtn" class="hidden px-4 py-2 text-sm font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
-                    Csoport összes adatának törlése
+                <button type="button" id="deleteAllDataBtn" title="A csoport összes kiadásának, tartozásának és rendezésének törlése"
+                        class="hidden px-3 sm:px-4 py-2 text-sm font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all whitespace-nowrap">
+                    Összes adat törlése
                 </button>
                 <button type="button" id="closeModalFooterBtn" class="ml-auto px-5 py-2 text-sm font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-all">
                     Bezárás
@@ -301,6 +266,9 @@
     </div>
 
 <script>
+    // Közös fejléc (a DOMContentLoaded előtt, hogy a téma-csúszka működjön)
+    renderHeader("expenses");
+
     // Megosztási módok: felirat, mértékegység, csúszka-tartomány
     const SPLIT_MODES = {
         EQUAL: { label: "Egyenlő" },
@@ -582,21 +550,27 @@
         container.innerHTML = getSelectedParticipants().map(p => {
             const colors = avatarColor(p);
             const locked = lockedParticipants.has(p);
+            // Mobilon két sor (név + számmező + lakat, alatta csúszka + összeg), nagyobb kijelzőn egy sor:
+            // a két belső sor "sm:contents", így a gyerekeik egyetlen flex sorba kerülnek, az order szerint
             return `
-                <div class="flex items-center gap-3" data-split-row="${escapeHtml(p)}">
-                    <span class="w-8 h-8 flex-shrink-0 rounded-full ${colors.bg} ${colors.text} flex items-center justify-center text-sm font-bold" title="${escapeHtml(p)}">${escapeHtml(p.charAt(0))}</span>
-                    <span class="w-16 text-sm font-medium text-slate-700 truncate">${escapeHtml(p)}</span>
-                    <input type="range" data-split-slider="${escapeHtml(p)}" min="0" max="${sliderMax()}" step="${step}" ${disabled ? "disabled" : ""}
-                           aria-label="${escapeHtml(p)} része" class="flex-1 min-w-0 accent-indigo-600 disabled:opacity-40">
-                    <div class="flex items-center gap-1 flex-shrink-0">
-                        <input type="number" data-split-input="${escapeHtml(p)}" min="0" step="${splitMode === "SHARES" ? 0.5 : step}" ${disabled ? "disabled" : ""}
-                               aria-label="${escapeHtml(p)} része (${unitLabel()})" class="w-20 rounded-lg border border-slate-300 px-2 py-1 text-sm text-right bg-white">
-                        <span class="w-8 text-xs text-slate-500">${escapeHtml(unitLabel())}</span>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3" data-split-row="${escapeHtml(p)}">
+                    <div class="flex items-center gap-2 sm:contents">
+                        <span class="sm:order-1 w-8 h-8 flex-shrink-0 rounded-full ${colors.bg} ${colors.text} flex items-center justify-center text-sm font-bold" title="${escapeHtml(p)}">${escapeHtml(p.charAt(0))}</span>
+                        <span class="sm:order-2 flex-1 sm:flex-none sm:w-20 min-w-0 text-sm font-medium text-slate-700 truncate" title="${escapeHtml(p)}">${escapeHtml(p)}</span>
+                        <div class="sm:order-4 flex items-center gap-1 flex-shrink-0">
+                            <input type="number" data-split-input="${escapeHtml(p)}" min="0" step="${splitMode === "SHARES" ? 0.5 : step}" ${disabled ? "disabled" : ""}
+                                   aria-label="${escapeHtml(p)} része (${unitLabel()})" class="w-20 rounded-lg border border-slate-300 px-2 py-1 text-sm text-right bg-white">
+                            <span class="w-7 text-xs text-slate-500">${escapeHtml(unitLabel())}</span>
+                        </div>
+                        ${canLock ? `<button type="button" data-split-lock="${escapeHtml(p)}" aria-pressed="${locked}"
+                                title="${locked ? "Rögzítve: a többiek módosításakor nem változik" : "Rögzítés"}"
+                                class="sm:order-5 w-8 h-8 flex-shrink-0 rounded-lg text-sm ${locked ? "bg-indigo-100 text-indigo-600" : "text-slate-400 hover:bg-slate-100"} transition-colors">${locked ? "🔒" : "🔓"}</button>` : ""}
                     </div>
-                    ${canLock ? `<button type="button" data-split-lock="${escapeHtml(p)}" aria-pressed="${locked}"
-                            title="${locked ? "Rögzítve: a többiek módosításakor nem változik" : "Rögzítés"}"
-                            class="w-8 h-8 flex-shrink-0 rounded-lg text-sm ${locked ? "bg-indigo-100 text-indigo-600" : "text-slate-400 hover:bg-slate-100"} transition-colors">${locked ? "🔒" : "🔓"}</button>` : ""}
-                    <span data-split-amount="${escapeHtml(p)}" class="w-20 flex-shrink-0 text-right text-xs font-semibold text-slate-500"></span>
+                    <div class="flex items-center gap-3 pl-10 sm:pl-0 sm:contents">
+                        <input type="range" data-split-slider="${escapeHtml(p)}" min="0" max="${sliderMax()}" step="${step}" ${disabled ? "disabled" : ""}
+                               aria-label="${escapeHtml(p)} része" class="sm:order-3 flex-1 min-w-0 accent-indigo-600 disabled:opacity-40">
+                        <span data-split-amount="${escapeHtml(p)}" class="sm:order-6 w-20 flex-shrink-0 text-right text-xs font-semibold text-slate-500 whitespace-nowrap"></span>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -874,6 +848,7 @@
             const category = getCategory(e.category);
             const date = formatDate(e.createdAt);
             const recurringMark = e.recurringExpenseId ? `<span title="Havonta ismétlődő kiadás">🔁</span> ` : "";
+            // A fizető és a dátum külön sorban, így a dátum sosem törik félbe
             return `
                 <div class="px-6 py-4 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
                     <div class="flex items-center gap-4 min-w-0">
@@ -881,8 +856,9 @@
                             ${escapeHtml(e.payer.charAt(0))}
                         </div>
                         <div class="min-w-0">
-                            <p class="text-sm font-bold text-slate-800 truncate" title="${escapeHtml(category.label)}">${recurringMark}${category.icon} ${escapeHtml(e.title)}</p>
-                            <p class="text-xs text-slate-500">Fizette: ${escapeHtml(e.payer)}${date ? ` • ${escapeHtml(date)}` : ""}</p>
+                            <p class="text-sm font-bold text-slate-800 truncate" title="${escapeHtml(e.title)} (${escapeHtml(category.label)})">${recurringMark}${category.icon} ${escapeHtml(e.title)}</p>
+                            <p class="text-xs text-slate-500 truncate">Fizette: ${escapeHtml(e.payer)}</p>
+                            ${date ? `<p class="text-xs text-slate-400 whitespace-nowrap">${escapeHtml(date)}</p>` : ""}
                         </div>
                     </div>
                     <div class="text-right flex-shrink-0">
@@ -904,19 +880,21 @@
             const category = getCategory(r.category);
             const canStop = canManage() || r.createdBy === currentUser.name;
             const next = new Date(`${r.nextRunDate}T00:00:00`).toLocaleDateString("hu-HU", { month: "short", day: "numeric" });
-            const status = r.active
-                ? `Minden hónap ${dayWithSuffix(r.dayOfMonth)} • következő: ${next}`
-                : "Leállítva (a fizető vagy egy résztvevő kilépett)";
+            // Az ütemezés kis címkékben, így tördeléskor sem marad félbe egy dátum
+            const schedule = r.active
+                ? `<span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 whitespace-nowrap">havonta ${dayWithSuffix(r.dayOfMonth)}</span>
+                   <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 whitespace-nowrap">következő: ${escapeHtml(next)}</span>`
+                : `<span class="text-xs px-2 py-0.5 rounded-full bg-rose-50 text-rose-700" title="A fizető vagy egy résztvevő kilépett a csoportból">Leállítva</span>`;
             return `
-                <div class="px-6 py-4 flex items-center justify-between gap-3">
-                    <div class="min-w-0">
-                        <p class="text-sm font-bold text-slate-800 truncate">${category.icon} ${escapeHtml(r.title)}</p>
-                        <p class="text-xs ${r.active ? "text-slate-500" : "text-rose-600"}">${escapeHtml(status)}</p>
-                        <p class="text-xs text-slate-500">Fizeti: ${escapeHtml(r.payer)}</p>
+                <div class="px-6 py-4 flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex flex-col gap-1">
+                        <p class="text-sm font-bold text-slate-800 truncate" title="${escapeHtml(r.title)}">${category.icon} ${escapeHtml(r.title)}</p>
+                        <div class="flex flex-wrap gap-1">${schedule}</div>
+                        <p class="text-xs text-slate-500 truncate">Fizeti: ${escapeHtml(r.payer)}</p>
                     </div>
                     <div class="flex flex-col items-end gap-1 flex-shrink-0">
                         <p class="text-sm font-bold text-slate-800 whitespace-nowrap">${formatMoney(r.amount, r.currency)}</p>
-                        ${canStop ? `<button type="button" data-stop-recurring="${r.id}" class="text-xs font-semibold text-rose-600 hover:underline">Leállítás</button>` : ""}
+                        ${canStop ? `<button type="button" data-stop-recurring="${r.id}" class="text-xs font-semibold text-slate-400 hover:text-rose-600 transition-colors">Leállítás</button>` : ""}
                     </div>
                 </div>
             `;
@@ -996,8 +974,27 @@
         `;
     }
 
+    // Az "Optimalizálva" jelvény csak akkor zöld, ha a bejelentkezett felhasználónak nincs tartozása;
+    // ha tartozik valakinek, narancssárga; az adminnál (nem résztvevő) semleges
+    function renderBalanceBadge(balances) {
+        const badge = document.getElementById("balanceBadge");
+        const base = "text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap";
+        if (!isParticipant()) {
+            badge.className = `${base} bg-slate-100 text-slate-600`;
+            badge.textContent = "Optimalizálva";
+            return;
+        }
+        const owes = balances.some(b => b.debtor === currentUser.name);
+        badge.className = `${base} ${owes ? "bg-orange-100 text-orange-600" : "bg-green-100 text-green-700"}`;
+        badge.textContent = owes ? "Optimalizálva" : "Optimalizálva ✓";
+        badge.title = owes
+            ? "A tartozások a lehető legkevesebb utalásra egyszerűsítve – neked még van rendezendő tartozásod"
+            : "A tartozások a lehető legkevesebb utalásra egyszerűsítve – neked nincs tartozásod";
+    }
+
     function renderBalances(balances) {
         renderPersonalSummary(balances);
+        renderBalanceBadge(balances);
         balancePairs = groupBalancesByPair(balances);
 
         const balanceContainer = document.getElementById("balancesList");
@@ -1105,7 +1102,8 @@
             };
         }
         const modeLabel = { PERCENT: "százalék szerint", AMOUNT: "összeg szerint", SHARES: "részarány szerint" }[e.splitType] || "";
-        const parts = shares.map(s => `${escapeHtml(s.person)} ${formatMoney(s.amount, e.currency)}`).join(" · ");
+        // Egy név és a hozzá tartozó összeg sosem kerül két sorba
+        const parts = shares.map(s => `<span class="whitespace-nowrap">${escapeHtml(s.person)} ${formatMoney(s.amount, e.currency)}</span>`).join(" · ");
         return {
             text: `Megosztva (${shares.length} fő, ${modeLabel}): <span class="text-slate-700">${parts}</span>`,
             perPerson: SPLIT_MODES[e.splitType]?.label || ""
@@ -1145,12 +1143,11 @@
             const category = getCategory(e.category);
             const share = shareDescription(e);
             const date = formatDate(e.createdAt);
-            // Ha más rögzítette, mint aki fizetett (tulajdonosi rögzítés), azt is jelezzük
-            const recordedBy = e.createdBy && e.createdBy !== e.payer
-                ? `<span class="text-xs text-slate-400">•</span><span class="text-xs text-slate-500">Rögzítette: ${escapeHtml(e.createdBy)}</span>`
-                : "";
+            // Dátum és (ha más rögzítette, mint aki fizetett) a rögzítő, egy külön sorban
+            const meta = [date, e.createdBy && e.createdBy !== e.payer ? `Rögzítette: ${e.createdBy}` : ""]
+                .filter(Boolean).map(escapeHtml).join(" · ");
             const recurringMark = e.recurringExpenseId
-                ? `<span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 font-semibold text-indigo-700">🔁 Ismétlődő</span>` : "";
+                ? `<span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 font-semibold text-indigo-700 whitespace-nowrap">🔁 Ismétlődő</span>` : "";
 
             const actions = canModify(e) ? `
                 <div class="flex items-center gap-1">
@@ -1165,23 +1162,22 @@
                 </div>` : `<div class="w-[4.75rem]" aria-hidden="true"></div>`;
 
             return `
-                <div class="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors">
-                    <div class="flex items-start gap-4 min-w-0">
-                        <div class="w-11 h-11 rounded-xl ${colors.bg} ${colors.text} flex items-center justify-center font-bold text-base flex-shrink-0 mt-0.5">
+                <div class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 hover:bg-slate-50/70 transition-colors">
+                    <div class="flex items-start gap-3 sm:gap-4 min-w-0">
+                        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl ${colors.bg} ${colors.text} flex items-center justify-center font-bold text-base flex-shrink-0 mt-0.5">
                             ${escapeHtml(e.payer.charAt(0))}
                         </div>
-                        <div class="min-w-0">
-                            <h4 class="text-base font-bold text-slate-800 leading-tight">${escapeHtml(e.title)}</h4>
-                            <div class="flex flex-wrap items-center gap-2 mt-1.5">
-                                <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 font-semibold text-slate-600">${category.icon} ${escapeHtml(category.label)}</span>
+                        <div class="min-w-0 flex flex-col gap-1.5">
+                            <h4 class="text-base font-bold text-slate-800 leading-tight break-words">${escapeHtml(e.title)}</h4>
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 font-semibold text-slate-600 whitespace-nowrap">${category.icon} ${escapeHtml(category.label)}</span>
                                 ${recurringMark}
-                                <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 font-semibold text-slate-600">
+                                <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 font-semibold text-slate-600 whitespace-nowrap">
                                     Fizette: <strong class="text-slate-800">${escapeHtml(e.payer)}</strong>
                                 </span>
-                                <span class="text-xs text-slate-500">${share.text}</span>
-                                ${date ? `<span class="text-xs text-slate-400">•</span><span class="text-xs text-slate-500">${escapeHtml(date)}</span>` : ""}
-                                ${recordedBy}
                             </div>
+                            <p class="text-xs text-slate-500">${share.text}</p>
+                            ${meta ? `<p class="text-xs text-slate-400">${meta}</p>` : ""}
                         </div>
                     </div>
 
