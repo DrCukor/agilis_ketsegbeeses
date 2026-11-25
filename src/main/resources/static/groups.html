@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="hu" class="auth-pending">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KözösKassza - Csoportok</title>
+    <!-- Téma (világos/sötét) beállítása a kirajzolás előtt -->
+    <script src="theme.js"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#4f46e5', // Indigo 600
+                        primaryHover: '#4338ca', // Indigo 700
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="theme.css">
+    <!-- Közös segédfüggvények -->
+    <script src="common.js"></script>
+    <style>
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                <h1 class="text-xl font-bold text-slate-900 tracking-tight">KözösKassza</h1>
+            </div>
+            <div class="flex items-center gap-3 sm:gap-4">
+                <!-- Munkamenet visszaszámláló -->
+                <span class="hidden md:flex items-center gap-1 text-xs font-medium text-slate-500" title="Automatikus kijelentkeztetésig hátralévő idő">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span id="sessionCountdown"></span>
+                </span>
+                <!-- Sötét mód kapcsoló (csúszka) -->
+                <button type="button" class="theme-switch" data-theme-toggle role="switch" aria-checked="false" aria-label="Sötét mód" title="Sötét mód">
+                    <span class="theme-switch-knob">
+                        <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                        <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    </span>
+                </button>
+                <div id="currentUserAvatar" class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-primary font-bold"></div>
+                <span id="currentUserName" class="hidden sm:inline-block font-medium text-sm text-slate-600"></span>
+                <button type="button" id="logoutBtn" class="text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg px-3 py-1.5 transition-colors">
+                    Kijelentkezés
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col gap-8">
+
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-900">Csoportjaim</h2>
+                <p id="groupsSubtitle" class="text-sm text-slate-500 mt-1">Válaszd ki, melyik társaság kiadásait szeretnéd kezelni.</p>
+            </div>
+            <div id="groupActions" class="hidden flex-col sm:flex-row gap-3">
+                <button type="button" id="openJoinBtn" class="px-4 py-2.5 text-sm font-semibold rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors">
+                    Csatlakozás kóddal
+                </button>
+                <button type="button" id="openCreateBtn" class="px-4 py-2.5 text-sm font-semibold rounded-xl bg-primary hover:bg-primaryHover text-white shadow-sm transition-colors">
+                    + Új csoport
+                </button>
+            </div>
+        </div>
+
+        <!-- Csoport-kártyák (JS tölti fel) -->
+        <div id="groupList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </main>
+
+    <!-- ÚJ CSOPORT / CSATLAKOZÁS ABLAK -->
+    <div id="formModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="formModalTitle">
+        <form id="groupForm" class="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 flex flex-col gap-4" novalidate>
+            <h3 id="formModalTitle" class="text-lg font-bold text-slate-800"></h3>
+
+            <!-- Új csoport mezői -->
+            <div id="createFields" class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label for="groupName" class="text-sm font-medium text-slate-700">Csoport neve</label>
+                    <input type="text" id="groupName" maxlength="60" placeholder="pl. Balatoni nyaralás, Albérlet" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm">
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label for="groupDescription" class="text-sm font-medium text-slate-700">Leírás <span class="text-slate-400 font-normal">(nem kötelező)</span></label>
+                    <input type="text" id="groupDescription" maxlength="200" placeholder="pl. 2026. nyári út a csapattal" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm">
+                </div>
+            </div>
+
+            <!-- Csatlakozás mezője -->
+            <div id="joinFields" class="hidden flex-col gap-1.5">
+                <label for="inviteCode" class="text-sm font-medium text-slate-700">Meghívókód</label>
+                <input type="text" id="inviteCode" autocomplete="off" placeholder="pl. K7F3-QM2P" class="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-mono uppercase tracking-wider">
+                <p class="text-xs text-slate-500">A kódot a csoport egyik tagjától kapod meg (vagy egy meghívó linket).</p>
+            </div>
+
+            <div id="formError" role="alert" class="hidden rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700"></div>
+
+            <div class="flex justify-end gap-3 mt-2">
+                <button type="button" id="formCancelBtn" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors">Mégse</button>
+                <button type="submit" id="formSubmitBtn" class="px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-primaryHover rounded-xl shadow-sm transition-colors"></button>
+            </div>
+        </form>
+    </div>
+
+    <!-- CSOPORT KEZELÉSE ABLAK -->
+    <div id="manageModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="manageTitle">
+        <div class="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <h3 id="manageTitle" class="text-lg font-bold text-slate-800 truncate"></h3>
+                    <p id="manageSubtitle" class="text-xs text-slate-500"></p>
+                </div>
+                <button type="button" id="closeManageBtn" aria-label="Bezárás" class="w-9 h-9 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div id="manageBody" class="p-6 flex flex-col gap-6 overflow-y-auto"></div>
+        </div>
+    </div>
+
+<script>
+    let currentUser = null;
+    let groups = [];
+    let formMode = "create"; // "create" vagy "join"
+    let managedGroupId = null;
+
+    const ROLE_LABELS = { OWNER: "Tulajdonos", MEMBER: "Tag", ADMIN: "Admin" };
+    const ROLE_CLASSES = {
+        OWNER: "bg-indigo-100 text-indigo-600",
+        MEMBER: "bg-slate-100 text-slate-600",
+        ADMIN: "bg-amber-100 text-amber-600"
+    };
+
+    function inviteLink(code) {
+        return `${location.origin}/groups.html?csatlakozas=${encodeURIComponent(code)}`;
+    }
+
+    function roleBadge(role) {
+        return `<span class="text-xs font-semibold px-2 py-0.5 rounded-full ${ROLE_CLASSES[role] || ROLE_CLASSES.MEMBER}">${ROLE_LABELS[role] || role}</span>`;
+    }
+
+    // ---------- Csoportlista ----------
+
+    async function loadGroups() {
+        const res = await apiFetch('/api/groups');
+        groups = await res.json();
+        renderGroups();
+    }
+
+    function balanceLines(group) {
+        const lines = [];
+        if (Object.keys(group.owe).length) lines.push(`<p class="text-sm font-semibold text-orange-600">Tartozásod: ${escapeHtml(formatMoneyMap(group.owe))}</p>`);
+        if (Object.keys(group.owed).length) lines.push(`<p class="text-sm font-semibold text-green-700">Neked jár: ${escapeHtml(formatMoneyMap(group.owed))}</p>`);
+        if (!lines.length) {
+            lines.push(currentUser.admin && group.role === "ADMIN"
+                ? `<p class="text-sm text-slate-500">Adminként minden csoportot látsz.</p>`
+                : `<p class="text-sm font-semibold text-slate-500">Nincs nyitott tartozásod ✓</p>`);
+        }
+        return lines.join('');
+    }
+
+    function renderGroups() {
+        const list = document.getElementById("groupList");
+        if (!groups.length) {
+            list.innerHTML = `
+                <div class="col-span-full bg-white rounded-2xl shadow-sm border border-slate-100 p-12 text-center flex flex-col items-center gap-3">
+                    <p class="text-4xl" aria-hidden="true">👥</p>
+                    <p class="text-base font-semibold text-slate-800">Még nem vagy tagja egy csoportnak sem.</p>
+                    <p class="text-sm text-slate-500">Hozz létre egy újat, vagy csatlakozz egy meghívókóddal!</p>
+                </div>`;
+            return;
+        }
+
+        list.innerHTML = groups.map(g => {
+            const colors = getAvatarColor(g.name, []);
+            return `
+                <section class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 flex-shrink-0 rounded-xl ${colors.bg} ${colors.text} flex items-center justify-center font-bold text-lg">${escapeHtml(g.name.charAt(0).toUpperCase())}</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="text-lg font-bold text-slate-800 truncate">${escapeHtml(g.name)}</h3>
+                                ${roleBadge(g.role)}
+                            </div>
+                            <p class="text-xs text-slate-500 mt-0.5">${g.memberCount} tag${g.description ? ` • ${escapeHtml(g.description)}` : ""}</p>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">${balanceLines(g)}</div>
+                    <div class="flex gap-3 mt-auto">
+                        <a href="/?csoport=${g.id}" class="flex-1 text-center px-4 py-2.5 text-sm font-semibold rounded-xl bg-primary hover:bg-primaryHover text-white shadow-sm transition-colors">Megnyitás →</a>
+                        <button type="button" data-manage-id="${g.id}" class="px-4 py-2.5 text-sm font-semibold rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors">Kezelés</button>
+                    </div>
+                </section>
+            `;
+        }).join('');
+    }
+
+    // ---------- Új csoport / csatlakozás ----------
+
+    function openForm(mode) {
+        formMode = mode;
+        const isCreate = mode === "create";
+        document.getElementById("formModalTitle").textContent = isCreate ? "Új csoport létrehozása" : "Csatlakozás csoporthoz";
+        document.getElementById("formSubmitBtn").textContent = isCreate ? "Létrehozás" : "Csatlakozás";
+        document.getElementById("createFields").classList.toggle("hidden", !isCreate);
+        document.getElementById("joinFields").classList.toggle("hidden", isCreate);
+        document.getElementById("joinFields").classList.toggle("flex", !isCreate);
+        document.getElementById("formError").classList.add("hidden");
+        document.getElementById("groupName").value = "";
+        document.getElementById("groupDescription").value = "";
+        document.getElementById("inviteCode").value = "";
+        document.getElementById("formModal").classList.remove("hidden");
+        document.getElementById(isCreate ? "groupName" : "inviteCode").focus();
+    }
+
+    function closeForm() {
+        document.getElementById("formModal").classList.add("hidden");
+    }
+
+    function showFormError(message) {
+        const box = document.getElementById("formError");
+        box.textContent = message;
+        box.classList.remove("hidden");
+    }
+
+    async function submitForm(event) {
+        event.preventDefault();
+        if (formMode === "create") {
+            const name = document.getElementById("groupName").value.trim();
+            if (!name) return showFormError("Add meg a csoport nevét!");
+            const res = await apiJson('/api/groups', 'POST', {
+                name, description: document.getElementById("groupDescription").value.trim()
+            });
+            if (!res.ok) return showFormError(await res.text());
+            const group = await res.json();
+            closeForm();
+            showToast(`„${group.name}” létrehozva – hívd meg a többieket!`);
+            await loadGroups();
+            openManage(group.id);
+        } else {
+            const code = document.getElementById("inviteCode").value.trim();
+            if (!code) return showFormError("Add meg a meghívókódot!");
+            const res = await apiJson('/api/groups/join', 'POST', { code });
+            if (!res.ok) return showFormError(await res.text());
+            const group = await res.json();
+            closeForm();
+            showToast(`Csatlakoztál: „${group.name}”`);
+            await loadGroups();
+        }
+    }
+
+    // Meghívó linkről érkezve (?csatlakozas=KÓD): előnézet és megerősítés után csatlakozik
+    async function handleInviteLink() {
+        const code = new URLSearchParams(location.search).get("csatlakozas");
+        if (!code) return;
+        history.replaceState(null, "", "/groups.html");
+
+        const res = await apiFetch(`/api/groups/invite/${encodeURIComponent(code)}`);
+        if (!res.ok) {
+            showToast(await res.text(), "error");
+            return;
+        }
+        const preview = await res.json();
+        if (preview.alreadyMember) {
+            showToast(`Már tagja vagy ennek a csoportnak: „${preview.name}”`, "info");
+            return;
+        }
+        if (currentUser.admin) {
+            showToast("Az admin nem csatlakozhat csoporthoz.", "error");
+            return;
+        }
+        const confirmed = await showConfirm({
+            title: "Meghívó",
+            message: `Csatlakozol a(z) „${preview.name}” csoporthoz? (${preview.memberCount} tag${preview.description ? `, ${preview.description}` : ""})`,
+            confirmText: "Csatlakozás"
+        });
+        if (!confirmed) return;
+
+        const joinRes = await apiJson('/api/groups/join', 'POST', { code });
+        if (joinRes.ok) {
+            showToast(`Csatlakoztál: „${preview.name}”`);
+            await loadGroups();
+        } else {
+            showToast(await joinRes.text(), "error");
+        }
+    }
+
+    // ---------- Csoport kezelése ----------
+
+    async function openManage(groupId) {
+        managedGroupId = groupId;
+        const res = await apiFetch(groupApi(groupId));
+        if (!res.ok) {
+            showToast(await res.text(), "error");
+            return;
+        }
+        const group = await res.json();
+        const isOwner = group.role === "OWNER";
+
+        document.getElementById("manageTitle").textContent = group.name;
+        document.getElementById("manageSubtitle").textContent = `${group.members.length} tag • a szereped: ${ROLE_LABELS[group.role]}`;
+
+        const otherMembers = group.members.filter(m => m.name !== currentUser.name);
+        const memberRows = group.members.map(m => {
+            const colors = getAvatarColor(m.name, group.members.map(x => x.name));
+            return `
+                <li class="flex items-center justify-between gap-3 py-2">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="w-8 h-8 flex-shrink-0 rounded-full ${colors.bg} ${colors.text} flex items-center justify-center text-sm font-bold">${escapeHtml(m.name.charAt(0))}</span>
+                        <span class="text-sm font-medium text-slate-800 truncate">${escapeHtml(m.name)}${m.name === currentUser.name ? " (te)" : ""}</span>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <span class="text-xs text-slate-400">${escapeHtml(formatDate(m.joinedAt))}</span>
+                        ${roleBadge(m.role)}
+                    </div>
+                </li>`;
+        }).join('');
+
+        const transferSection = group.canManage && otherMembers.length ? `
+            <div class="flex flex-col gap-2">
+                <h4 class="text-sm font-semibold text-slate-700">Tulajdonjog átadása</h4>
+                <div class="flex gap-2">
+                    <select id="transferSelect" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                        ${otherMembers.filter(m => m.role !== "OWNER").map(m => `<option value="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('')}
+                    </select>
+                    <button type="button" id="transferBtn" class="px-4 py-2 text-sm font-semibold rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors">Átadás</button>
+                </div>
+            </div>` : "";
+
+        document.getElementById("manageBody").innerHTML = `
+            <div class="flex flex-col gap-2">
+                <h4 class="text-sm font-semibold text-slate-700">Meghívás</h4>
+                <p class="text-xs text-slate-500">Küldd el a linket vagy a kódot annak, akit meghívnál.</p>
+                <div class="flex items-center gap-2">
+                    <code class="flex-1 text-center text-lg font-bold tracking-widest bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-800">${escapeHtml(group.inviteCode)}</code>
+                    <button type="button" id="copyCodeBtn" class="px-3 py-2.5 text-sm font-semibold rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors">Kód másolása</button>
+                </div>
+                <button type="button" id="copyLinkBtn" class="w-full px-4 py-2.5 text-sm font-semibold rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 transition-colors">🔗 Meghívó link másolása</button>
+            </div>
+            <div class="flex flex-col gap-1">
+                <h4 class="text-sm font-semibold text-slate-700">Tagok</h4>
+                <ul class="divide-y divide-slate-100">${memberRows}</ul>
+            </div>
+            ${transferSection}
+            <div class="flex flex-col sm:flex-row gap-3 pt-2 border-t border-slate-100">
+                ${group.role !== "ADMIN" ? `<button type="button" id="leaveBtn" class="flex-1 px-4 py-2.5 text-sm font-semibold rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors">Kilépés a csoportból</button>` : ""}
+                ${group.canManage ? `<button type="button" id="deleteGroupBtn" class="flex-1 px-4 py-2.5 text-sm font-semibold rounded-xl text-rose-600 hover:bg-rose-50 transition-colors">Csoport törlése</button>` : ""}
+            </div>
+        `;
+
+        document.getElementById("copyCodeBtn").addEventListener("click", async () => {
+            if (await copyToClipboard(group.inviteCode)) showToast("Meghívókód vágólapra másolva");
+        });
+        document.getElementById("copyLinkBtn").addEventListener("click", async () => {
+            if (await copyToClipboard(inviteLink(group.inviteCode))) showToast("Meghívó link vágólapra másolva");
+        });
+        document.getElementById("transferBtn")?.addEventListener("click", () => transferOwnership(group));
+        document.getElementById("leaveBtn")?.addEventListener("click", () => leaveGroup(group, isOwner));
+        document.getElementById("deleteGroupBtn")?.addEventListener("click", () => deleteGroup(group));
+
+        document.getElementById("manageModal").classList.remove("hidden");
+    }
+
+    function closeManage() {
+        document.getElementById("manageModal").classList.add("hidden");
+        managedGroupId = null;
+    }
+
+    async function transferOwnership(group) {
+        const newOwner = document.getElementById("transferSelect").value;
+        const confirmed = await showConfirm({
+            title: "Tulajdonjog átadása",
+            message: `Átadod a(z) „${group.name}” csoport tulajdonjogát ${toDative(newOwner)}? Ezután te sima tag leszel.`,
+            confirmText: "Átadás"
+        });
+        if (!confirmed) return;
+        const res = await apiJson(groupApi(group.id, "/transfer"), 'POST', { newOwner });
+        if (!res.ok) return showToast(await res.text(), "error");
+        showToast(`${newOwner} lett a tulajdonos`);
+        await loadGroups();
+        await openManage(group.id);
+    }
+
+    async function leaveGroup(group, isOwner) {
+        const lastMember = group.members.length === 1;
+        const confirmed = await showConfirm({
+            title: "Kilépés a csoportból",
+            message: isOwner && lastMember
+                ? `Te vagy az utolsó tag, ezért a(z) „${group.name}” csoport az összes adatával együtt törlődik. Biztosan kilépsz?`
+                : `Biztosan kilépsz a(z) „${group.name}” csoportból? Kilépni csak nyitott tartozás nélkül lehet.`,
+            confirmText: "Kilépés",
+            danger: true
+        });
+        if (!confirmed) return;
+        const res = await apiFetch(groupApi(group.id, "/leave"), { method: 'POST' });
+        if (!res.ok) return showToast(await res.text(), "error");
+        closeManage();
+        showToast(`Kiléptél: „${group.name}”`);
+        await loadGroups();
+    }
+
+    async function deleteGroup(group) {
+        const confirmed = await showConfirm({
+            title: "Csoport törlése",
+            message: `A(z) „${group.name}” csoport az összes kiadásával, tartozásával és rendezésével együtt véglegesen törlődik. Nem visszavonható!`,
+            confirmText: "Végleges törlés",
+            danger: true,
+            requireText: "TÖRLÉS"
+        });
+        if (!confirmed) return;
+        const res = await apiFetch(groupApi(group.id), { method: 'DELETE' });
+        if (!res.ok) return showToast(await res.text(), "error");
+        closeManage();
+        showToast(`„${group.name}” törölve`);
+        await loadGroups();
+    }
+
+    // ---------- Indulás ----------
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        currentUser = await loadCurrentUser();
+        if (!currentUser) return;
+
+        // Az admin nem hozhat létre és nem csatlakozhat csoporthoz, viszont mindet látja
+        if (currentUser.admin) {
+            document.getElementById("groupsSubtitle").textContent = "Adminként az összes csoportot látod és kezelheted.";
+        } else {
+            document.getElementById("groupActions").classList.remove("hidden");
+            document.getElementById("groupActions").classList.add("flex");
+        }
+
+        await loadGroups();
+        await handleInviteLink();
+
+        document.getElementById("openCreateBtn").addEventListener("click", () => openForm("create"));
+        document.getElementById("openJoinBtn").addEventListener("click", () => openForm("join"));
+        document.getElementById("formCancelBtn").addEventListener("click", closeForm);
+        document.getElementById("groupForm").addEventListener("submit", submitForm);
+        document.getElementById("formModal").addEventListener("click", (e) => { if (e.target.id === "formModal") closeForm(); });
+
+        document.getElementById("groupList").addEventListener("click", (e) => {
+            const btn = e.target.closest("button[data-manage-id]");
+            if (btn) openManage(Number(btn.dataset.manageId));
+        });
+        document.getElementById("closeManageBtn").addEventListener("click", closeManage);
+        document.getElementById("manageModal").addEventListener("click", (e) => { if (e.target.id === "manageModal") closeManage(); });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key !== "Escape") return;
+            closeForm();
+            closeManage();
+        });
+    });
+</script>
+</body>
+</html>

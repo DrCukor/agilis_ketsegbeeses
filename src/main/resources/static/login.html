@@ -124,6 +124,14 @@
     // Ugyanaz a szabály, mint a backendben (AuthService.EMAIL_PATTERN), ékezetes betűkkel együtt
     const EMAIL_PATTERN = /^[\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(\.[\p{L}\p{N}-]+)*\.\p{L}{2,}$/u;
 
+    // Belépés után: vissza oda, ahonnan ide kerültünk (pl. meghívó link), különben a csoportokhoz.
+    // Csak saját oldalra engedünk visszairányítani (nyitott átirányítás ellen).
+    function goToTarget() {
+        const target = new URLSearchParams(location.search).get("vissza");
+        const safe = target && target.startsWith("/") && !target.startsWith("//") && !target.startsWith("/\\");
+        window.location.href = safe ? target : "/groups.html";
+    }
+
     function isValidEmail(email) {
         return EMAIL_PATTERN.test(email);
     }
@@ -192,7 +200,7 @@
 
         const res = await postJson("/api/auth/login", { email, password });
         if (res.ok) {
-            window.location.href = "/";
+            goToTarget();
         } else {
             showError(await res.text());
         }
@@ -221,7 +229,7 @@
 
         const res = await postJson("/api/auth/register", { name, email, password });
         if (res.ok) {
-            window.location.href = "/";
+            goToTarget();
         } else {
             showError(await res.text());
         }
@@ -231,7 +239,7 @@
         // Ha már be van jelentkezve, egyből a főoldalra visszük
         const me = await fetch("/api/auth/me");
         if (me.ok) {
-            window.location.href = "/";
+            goToTarget();
             return;
         }
 

@@ -15,22 +15,17 @@ import java.util.Map;
 @Service
 public class DebtService {
 
+    // Minden résztvevő (a fizetőn kívül) a rá eső résszel tartozik a fizetőnek.
+    // A részeket az Expense.getShareAmounts() adja (egyéni megosztás, vagy egyenlő elosztás).
     public List<Debt> calculateDebts(Expense expense) {
         List<Debt> debts = new ArrayList<>();
-        List<String> participants = expense.getParticipants();
         String payer = expense.getPayer();
-        double share = expense.getSharePerPerson();
 
-        if (share <= 0) {
-            return debts;
-        }
-
-        for (String participant : participants) {
-            if (participant.equals(payer)) {
-                continue;
+        expense.getShareAmounts().forEach((participant, share) -> {
+            if (!participant.equals(payer) && share > 0) {
+                debts.add(new Debt(expense, participant, payer, share, expense.getCurrency()));
             }
-            debts.add(new Debt(expense, participant, payer, share, expense.getCurrency()));
-        }
+        });
         return debts;
     }
 

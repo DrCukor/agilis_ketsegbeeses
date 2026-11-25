@@ -40,18 +40,21 @@
 
     <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-            <div class="flex items-center gap-6 min-w-0">
-                <div class="flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <div class="flex items-center gap-4 lg:gap-6 min-w-0">
+                <a href="/groups.html" class="flex items-center gap-2 min-w-0" title="Vissza a csoportokhoz">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 flex-shrink-0 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                     </svg>
-                    <h1 class="hidden sm:block text-xl font-bold text-slate-900 tracking-tight">KözösKassza</h1>
-                </div>
-                <!-- Navigáció -->
+                    <div class="min-w-0 leading-tight">
+                        <p class="text-xs font-medium text-slate-500">← Csoportok</p>
+                        <p id="currentGroupName" class="text-sm font-bold text-slate-900 truncate max-w-[10rem] sm:max-w-[14rem]"></p>
+                    </div>
+                </a>
+                <!-- Navigáció (a hivatkozások a csoportra mutatnak) -->
                 <nav class="flex items-center gap-1 text-sm font-medium">
-                    <a href="/" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">Kiadások</a>
-                    <a href="/history.html" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800" aria-current="page">Rendezések</a>
-                    <a href="/stats.html" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">Statisztika</a>
+                    <a data-group-link="/" href="/" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">Kiadások</a>
+                    <a data-group-link="/history.html" href="/history.html" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800" aria-current="page">Rendezések</a>
+                    <a data-group-link="/stats.html" href="/stats.html" class="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">Statisztika</a>
                 </nav>
             </div>
             <div class="flex items-center gap-3 sm:gap-4">
@@ -205,11 +208,17 @@
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
+        const groupId = requireGroupId();
+        if (!groupId) return;
         currentUser = await loadCurrentUser();
         if (!currentUser) return;
+        if (!(await loadGroup(groupId))) return;
 
         try {
-            const [usersRes, settlementsRes] = await Promise.all([apiFetch('/api/users'), apiFetch('/api/settlements')]);
+            const [usersRes, settlementsRes] = await Promise.all([
+                apiFetch(groupApi(groupId, '/members')),
+                apiFetch(groupApi(groupId, '/settlements'))
+            ]);
             allUsers = await usersRes.json();
             allSettlements = await settlementsRes.json();
         } catch (err) {

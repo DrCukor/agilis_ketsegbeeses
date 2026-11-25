@@ -10,4 +10,10 @@ import java.util.List;
 public interface SettlementRepository extends JpaRepository<Settlement, Long> {
     // Rendezések előzménye, a legfrissebb elöl
     List<Settlement> findAllByOrderByCreatedAtDescIdDesc();
+
+    // Egy csoport rendezései, a legfrissebb elöl
+    List<Settlement> findAllByGroupIdOrderByCreatedAtDescIdDesc(Long groupId);
+
+    // Csoport nélküli (a csoportok bevezetése előtti) rendezések
+    List<Settlement> findAllByGroupIsNull();
 }

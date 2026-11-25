@@ -109,6 +109,7 @@ html.dark .hover\:text-slate-700:hover,
 html.dark .hover\:text-slate-600:hover { color: #f1f5f9; }
 html.dark .hover\:border-slate-300:hover { border-color: #64748b; }
 html.dark .hover\:bg-rose-50:hover { background-color: rgba(244, 63, 94, 0.15); }
+html.dark .hover\:bg-indigo-100:hover { background-color: rgba(99, 102, 241, 0.25); }
 
 /* Űrlapmezők */
 html.dark input,
