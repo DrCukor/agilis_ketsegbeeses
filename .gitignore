@@ -34,3 +34,5 @@ build/
 
 data/
 *.db
+
+src/main/resources/application-local.properties
